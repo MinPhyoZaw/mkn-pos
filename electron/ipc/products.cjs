@@ -60,7 +60,25 @@ ipcMain.handle("products:update", async (_event, id, data) => {
 
 ipcMain.handle("products:delete", async (_event, id) => {
   const prisma = getPrisma();
-  await prisma.product.delete({
-    where: { id: Number(id) },
-  });
+  const productId = Number(id);
+  if (!Number.isInteger(productId) || productId <= 0) throw new Error("A valid product ID is required.");
+
+  const [sales, orders, movements] = await Promise.all([
+    prisma.saleItem.count({ where: { productId } }),
+    prisma.orderItem.count({ where: { productId } }),
+    prisma.stockMovement.count({ where: { productId } }),
+  ]);
+  if (sales || orders || movements) {
+    throw new Error("This product has existing sales, order, or stock history and cannot be permanently deleted.");
+  }
+
+  try {
+    return await prisma.product.delete({ where: { id: productId } });
+  } catch (error) {
+    if (error?.code === "P2003") {
+      throw new Error("This product has existing sales, order, or stock history and cannot be permanently deleted.");
+    }
+    if (error?.code === "P2025") throw new Error("Product not found.");
+    throw error;
+  }
 });

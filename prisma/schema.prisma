@@ -25,8 +25,9 @@ model Product {
   stockQty      Int @default(0)
   lowStockLevel Int @default(5)
 
-  saleItems SaleItem[]
-  movements StockMovement[]
+  saleItems  SaleItem[]
+  orderItems OrderItem[]
+  movements  StockMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,6 +72,33 @@ model StockMovement {
   product Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+model Order {
+  id            Int         @id @default(autoincrement())
+  customerName  String
+  phone         String
+  address       String
+  totalAmount   Int
+  paymentStatus String      @default("UNPAID")
+  status        String      @default("PENDING")
+  orderDate     DateTime    @default(now())
+  notes         String?
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  productId   Int?
+  productName String
+  unitPrice   Int
+  quantity    Int
+  subtotal    Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: Restrict)
 }
 
 model Setting {
