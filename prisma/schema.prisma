@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id         Int       @id @default(autoincrement())
+  name       String
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  costPrice     Int @default(0)
+  sellingPrice  Int
+  stockQty      Int @default(0)
+  lowStockLevel Int @default(5)
+
+  saleItems SaleItem[]
+  movements StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sale {
+  id           Int    @id @default(autoincrement())
+  totalAmount  Int
+  cashReceived Int
+  changeAmount Int
+  status       String @default("COMPLETED")
+
+  items SaleItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model SaleItem {
+  id        Int @id @default(autoincrement())
+  saleId    Int
+  productId Int
+
+  productName String
+  quantity    Int
+  unitPrice   Int
+  costPrice   Int
+  subtotal    Int
+  profit      Int
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model StockMovement {
+  id        Int @id @default(autoincrement())
+  productId Int
+
+  type     String
+  quantity Int
+  note     String?
+
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+
+  updatedAt DateTime @updatedAt
+}
