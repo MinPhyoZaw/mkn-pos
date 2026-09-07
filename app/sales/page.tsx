@@ -26,7 +26,7 @@ export default function Page() {
     }
 
     const rows = await electronApi.products.getAll();
-    setProducts(rows.filter((product) => product.stockQty > 0));
+    setProducts(rows.filter((product: Product) => product.stockQty > 0));
   };
 
   useEffect(() => {
@@ -395,4 +395,3 @@ const errorStyle: React.CSSProperties = {
   borderRadius: 10,
   marginBottom: 16,
 };
-

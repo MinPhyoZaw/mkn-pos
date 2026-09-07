@@ -2,10 +2,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {LayoutDashboard,ShoppingCart,Package,Tags,Layers3,History,BarChart3,DatabaseBackup,Settings} from "lucide-react";
+import {LayoutDashboard,ShoppingCart,ClipboardList,Package,Tags,Layers3,History,BarChart3,DatabaseBackup,Settings} from "lucide-react";
 const links=[
 {href:"/dashboard",label:"Dashboard",icon:LayoutDashboard},
 {href:"/sales",label:"New Sale",icon:ShoppingCart},
+{href:"/orders",label:"Orders",icon:ClipboardList},
 {href:"/products",label:"Products",icon:Package},
 {href:"/categories",label:"Categories",icon:Tags},
 {href:"/stock",label:"Stock",icon:Layers3},

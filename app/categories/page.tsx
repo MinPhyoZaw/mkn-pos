@@ -42,7 +42,7 @@ export default function CategoriesPage() {
     if (!electronApi?.categories?.getAll || !electronApi?.categories?.create) return;
 
     const existing = await electronApi.categories.getAll();
-    const existingNames = new Set(existing.map((category) => category.name.trim().toLowerCase()));
+    const existingNames = new Set(existing.map((category: Category) => category.name.trim().toLowerCase()));
     const missing = defaultCategories.filter((item) => !existingNames.has(item.trim().toLowerCase()));
 
     for (const item of missing) {
