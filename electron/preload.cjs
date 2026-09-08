@@ -7,15 +7,18 @@ contextBridge.exposeInMainWorld("electron", {
     update: (id, data) => ipcRenderer.invoke("products:update", id, data),
     delete: (id) => ipcRenderer.invoke("products:delete", id),
   },
+
   categories: {
     getAll: () => ipcRenderer.invoke("categories:getAll"),
     create: (data) => ipcRenderer.invoke("categories:create", data),
     update: (id, data) => ipcRenderer.invoke("categories:update", id, data),
     delete: (id) => ipcRenderer.invoke("categories:delete", id),
   },
+
   sales: {
     create: (data) => ipcRenderer.invoke("sales:create", data),
   },
+
   orders: {
     getAll: () => ipcRenderer.invoke("orders:getAll"),
     getById: (id) => ipcRenderer.invoke("orders:getById", id),
@@ -25,7 +28,9 @@ contextBridge.exposeInMainWorld("electron", {
     updatePaymentStatus: (id, status) => ipcRenderer.invoke("orders:updatePaymentStatus", id, status),
     delete: (id) => ipcRenderer.invoke("orders:delete", id),
   },
+
   dashboard: {
     getStats: () => ipcRenderer.invoke("dashboard:getStats"),
+    getOverview: () => ipcRenderer.invoke("dashboard:getOverview"),
   },
 });

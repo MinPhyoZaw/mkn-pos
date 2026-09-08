@@ -15,9 +15,15 @@ function normalizeProductData(data = {}) {
 }
 
 ipcMain.handle("products:getAll", async () => {
-  return getPrisma().product.findMany({
-    include: { category: true },
-    orderBy: { createdAt: "desc" },
+  const prisma = getPrisma();
+
+  return prisma.product.findMany({
+    include: {
+      category: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
   });
 });
 

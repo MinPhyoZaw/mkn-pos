@@ -11,6 +11,7 @@ const label = (value: string) => value.charAt(0) + value.slice(1).toLowerCase();
 const money = (value: number) => `${new Intl.NumberFormat("en-US").format(value)} MMK`;
 const dateInput = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
 const emptyForm = (): OrderInput => ({ customerName: "", phone: "", address: "", orderDate: dateInput(new Date()), notes: "", paymentStatus: "UNPAID", status: "PENDING", items: [] });
+const getElectronApi = () => (typeof window !== "undefined" ? (window as any).electron : undefined);
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -30,11 +31,24 @@ export default function OrdersPage() {
 
   const load = async () => {
     setLoading(true);
+    setError("");
     try {
-      const [orderRows, productRows] = await Promise.all([window.electron.orders.getAll(), window.electron.products.getAll()]);
-      setOrders(orderRows); setProducts(productRows);
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to load orders."); }
-    finally { setLoading(false); }
+      const electronApi = getElectronApi();
+      if (!electronApi?.orders?.getAll || !electronApi?.products?.getAll) {
+        throw new Error("Unable to load products.\nPlease restart the POS application.");
+      }
+
+      const [orderRows, productRows] = await Promise.all([electronApi.orders.getAll(), electronApi.products.getAll()]);
+      setOrders(orderRows);
+      setProducts(productRows);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to load orders.";
+      setError(message);
+      setProducts([]);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -71,16 +85,21 @@ export default function OrdersPage() {
     if (!form.items.length) return setError("Add at least one product to the order.");
     setSaving(true);
     try {
+      const electronApi = getElectronApi();
+      if (!electronApi?.orders?.create && !electronApi?.orders?.update) {
+        throw new Error("Unable to save order.\nPlease restart the POS application.");
+      }
+
       const payload = { ...form, items: form.items.map((item) => ({ ...item, subtotal: item.unitPrice * item.quantity })) };
-      const saved = editingId === null ? await window.electron.orders.create(payload) : await window.electron.orders.update(editingId, payload);
+      const saved = editingId === null ? await electronApi.orders.create(payload) : await electronApi.orders.update(editingId, payload);
       await load(); setFormOpen(false); setNotice(`Order #${saved.id} ${editingId === null ? "created" : "updated"} successfully.`);
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to save order."); }
     finally { setSaving(false); }
   };
-  const changeStatus = async (order: Order, status: OrderStatus) => { try { const updated = await window.electron.orders.updateStatus(order.id, status); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update status."); } };
-  const changePayment = async (order: Order) => { const next = order.paymentStatus === "PAID" ? "UNPAID" : "PAID"; try { const updated = await window.electron.orders.updatePaymentStatus(order.id, next); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update payment."); } };
+  const changeStatus = async (order: Order, status: OrderStatus) => { try { const electronApi = getElectronApi(); if (!electronApi?.orders?.updateStatus) { throw new Error("Unable to update status.\nPlease restart the POS application."); } const updated = await electronApi.orders.updateStatus(order.id, status); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update status."); } };
+  const changePayment = async (order: Order) => { const next = order.paymentStatus === "PAID" ? "UNPAID" : "PAID"; try { const electronApi = getElectronApi(); if (!electronApi?.orders?.updatePaymentStatus) { throw new Error("Unable to update payment.\nPlease restart the POS application."); } const updated = await electronApi.orders.updatePaymentStatus(order.id, next); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update payment."); } };
   const cancelOrder = async (order: Order) => { if (!window.confirm(`Cancel Order #${order.id}?\n\nThe order will remain in your business history.`)) return; await changeStatus(order, "CANCELLED"); };
-  const deleteOrder = async (order: Order) => { if (!window.confirm(`Delete Order #${order.id}?\n\nThis action cannot be undone.`)) return; try { await window.electron.orders.delete(Number(order.id)); setDetail(null); await load(); setNotice(`Order #${order.id} deleted.`); } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete order."); } };
+  const deleteOrder = async (order: Order) => { if (!window.confirm(`Delete Order #${order.id}?\n\nThis action cannot be undone.`)) return; try { const electronApi = getElectronApi(); if (!electronApi?.orders?.delete) { throw new Error("Unable to delete order.\nPlease restart the POS application."); } await electronApi.orders.delete(Number(order.id)); setDetail(null); await load(); setNotice(`Order #${order.id} deleted.`); } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete order."); } };
 
   return <AppShell><div className="orders-page">
     <header className="orders-header"><div><h1>Orders</h1><p>Manage customer orders and payment status</p></div><button className="primary" onClick={openCreate}>+ New Order</button></header>
@@ -94,7 +113,7 @@ export default function OrdersPage() {
     </tbody></table></div>
     {formOpen && <div className="backdrop" onMouseDown={()=>setFormOpen(false)}><div className="order-modal form-modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><h2>{editingId ? `Edit Order #${editingId}` : "New Order"}</h2><p>Creating an order does not reduce product stock.</p></div><button className="close" onClick={()=>setFormOpen(false)}>×</button></div>{error&&<div className="error">{error}</div>}
       <div className="field-grid"><Field name="Customer Name *" value={form.customerName} onChange={v=>setForm({...form,customerName:v})}/><Field name="Phone Number *" value={form.phone} onChange={v=>setForm({...form,phone:v})}/><label className="field full">Address *<textarea value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/></label><label className="field">Order Date<input type="date" value={String(form.orderDate)} onChange={e=>setForm({...form,orderDate:e.target.value})}/></label><label className="field">Payment Status<select value={form.paymentStatus} onChange={e=>setForm({...form,paymentStatus:e.target.value as PaymentStatus})}>{payments.map(s=><option key={s} value={s}>{label(s)}</option>)}</select></label>{editingId&&<label className="field">Order Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as OrderStatus})}>{statuses.map(s=><option key={s} value={s}>{label(s)}</option>)}</select></label>}<label className="field full">Notes (optional)<textarea value={form.notes??""} onChange={e=>setForm({...form,notes:e.target.value})}/></label></div>
-      <div className="items-editor"><h3>Ordered Items</h3><input placeholder="Search products to add..." value={productSearch} onChange={e=>setProductSearch(e.target.value)}/>{productSearch&&<div className="product-picker">{productResults.map(product=><button key={product.id} onClick={()=>{addProduct(product);setProductSearch("");}}><span>{product.name}</span><strong>{money(product.sellingPrice)}</strong></button>)}{!productResults.length&&<span>No products found.</span>}</div>}
+      <div className="items-editor"><h3>Ordered Items</h3><input placeholder="Search products to add..." value={productSearch} onChange={e=>setProductSearch(e.target.value)}/>{productSearch&&<div className="product-picker">{productResults.map(product=><button key={product.id} onClick={()=>{addProduct(product);setProductSearch("");}}><div className="product-picker-row"><div><span>{product.name}</span><small>{product.category?.name ?? "Uncategorized"}</small></div><div className="product-picker-meta"><strong>{money(product.sellingPrice)}</strong><span>Stock: {product.stockQty}</span></div></div></button>)}{!productResults.length&&<span>No products found.</span>}</div>}
       <div className="edit-items">{form.items.map((item,index)=><div className="edit-item" key={`${item.productId}-${index}`}><div><strong>{item.productName}</strong><span>{money(item.unitPrice)} × {item.quantity}</span></div><div className="qty"><button onClick={()=>quantity(index,-1)}>−</button><b>{item.quantity}</b><button onClick={()=>quantity(index,1)}>+</button></div><strong>{money(item.unitPrice*item.quantity)}</strong><button className="remove" onClick={()=>remove(index)}>Remove</button></div>)}</div><div className="form-total"><span>Total</span><strong>{money(total)}</strong></div></div>
       <div className="modal-actions"><button onClick={()=>setFormOpen(false)}>Cancel</button><button className="primary" disabled={saving} onClick={save}>{saving?"Saving...":editingId?"Save Changes":"Create Order"}</button></div>
     </div></div>}
