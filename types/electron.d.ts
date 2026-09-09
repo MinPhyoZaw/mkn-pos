@@ -141,7 +141,7 @@ export interface SaleHistoryRow {
 }
 
 type SalesHistoryApi = {
-  getAll: (filters?: { search?: string; from?: string; to?: string; source?: string; status?: string }) => Promise<SaleHistoryRow[]>;
+  getAll: (filters?: { filterType?: string; month?: string; fromDate?: string; toDate?: string; search?: string; source?: string; status?: string }) => Promise<{ sales: SaleHistoryRow[]; summary: { totalSales: number; grossProfit: number; transactions: number; itemsSold: number } }>;
   getById: (id: number) => Promise<SaleHistoryRow>;
   voidSale: (id: number) => Promise<SaleHistoryRow>;
 };

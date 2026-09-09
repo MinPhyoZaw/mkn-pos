@@ -1,0 +1,33 @@
+/* Shared teal visual overrides. Business logic remains page-owned. */
+body{background:#F4FAF9;color:#134E4A}
+.app-main{background:#F4FAF9}
+.orders-page,.stock-page,.sales-history-page,.reports-page,.backup-page,.settings-page{color:#134E4A}
+.orders-header h1,.stock-header h1,.sales-history-header h1,.reports-header h1,.backup-header h1,.settings-header h1{color:#134E4A}
+.orders-header p,.stock-header p,.sales-history-header p,.reports-header p,.backup-header p,.settings-header p,.report-heading p,.movement-heading p{color:#64748B}
+.table-card,.stock-panel,.history-panel,.report-panel,.backup-status-card,.backup-restore-card,.backup-history-card,.settings-card{border-color:#D9EEEA;box-shadow:0 8px 24px rgba(15,118,110,.05)}
+.primary,.stock-primary,.history-primary,.reports-date-controls select,.backup-primary,.settings-primary{background:#0F766E!important;border-color:#0F766E!important;color:#fff!important}
+.primary:hover,.stock-primary:hover,.history-primary:hover,.backup-primary:hover,.settings-primary:hover{background:#115E59!important;border-color:#115E59!important}
+.actions button,.stock-actions button,.view-button,.backup-secondary,.settings-secondary,.history-pagination button{border-color:#D9EEEA;color:#0F766E}
+.filters input,.filters select,.field input,.field select,.field textarea,.items-editor>input,.status-controls select,.stock-filters input,.stock-filters select,.history-filters input,.history-filters select,.reports-date-controls input,.reports-date-controls select,.backup-primary,.backup-secondary,.settings-field input,.settings-field textarea,.settings-number-field input{border-color:#D9EEEA}
+.table-card th,.detail-items th,.stock-table th,.history-table th,.report-table th,.backup-table th{background:#F0FDFA;color:#5F8F89}
+.table-card td,.detail-items td,.stock-table td,.history-table td,.report-table td,.backup-table td{border-color:#D9EEEA}
+.product-row:hover{background:#F4FAF9}
+.dashboard-page h1{color:#134E4A!important}
+.product-card,.sale-panel,.cart-panel{border-color:#D9EEEA!important;box-shadow:0 8px 24px rgba(15,118,110,.05)!important}
+.status-badge.completed,.badge-paid,.badge-completed,.stock-badge.in_stock{background:#ECFDF5;color:#047857}
+.dashboard-summary-card{border-color:#D9EEEA!important}
+.source-badge.pos,.report-source.pos{background:#CCFBF1;color:#0F766E}
+.source-badge.order,.report-source.order{background:#ECFEFF;color:#155E75}
+.trend-line{stroke:#0F766E}.trend-point{stroke:#0F766E}.trend-point:hover{fill:#CCFBF1}.trend-bar{background:#0F766E}
+.donut-segment.segment-0,.legend-dot.segment-0{stroke:#0F766E;background:#0F766E}.donut-segment.segment-1,.legend-dot.segment-1{stroke:#2C9C95;background:#2C9C95}
+.report-card.green,.report-card.blue,.report-card.violet,.report-card.orange{border-top-color:#0F766E}
+.report-card.green,.report-card.blue,.report-card.violet,.report-card.orange{background:#ECFDF5}
+.product-category-badge{background:#ECFEFF;color:#155E75}
+.product-status-badge.in-stock{background:#ECFDF5;color:#047857}
+.modal-head h2,.stock-modal-heading h2,.history-modal-heading h2{color:#134E4A}
+.notice,.stock-notice,.history-notice,.backup-notice,.settings-notice{border-color:#BFE8DF;color:#0F766E;background:#ECFDF5}
+.error,.stock-error,.history-error,.backup-error,.settings-error{border-color:#FECACA}
+.app-main .primary,.app-main .backup-primary,.app-main .settings-primary,.app-main .stock-primary,.app-main .history-primary{background:#0F766E!important;border-color:#0F766E!important;color:#fff!important}
+.app-main .primary:hover,.app-main .backup-primary:hover,.app-main .settings-primary:hover,.app-main .stock-primary:hover,.app-main .history-primary:hover{background:#115E59!important;border-color:#115E59!important}
+.app-main .backup-secondary,.app-main .settings-secondary,.app-main .stock-actions button,.app-main .view-button,.app-main .history-pagination button{border-color:#D9EEEA;color:#0F766E}
+.app-main .reports-date-controls select,.app-main .history-filters select,.app-main .stock-filters select,.app-main .filters select{border-color:#D9EEEA;color:#0F766E}

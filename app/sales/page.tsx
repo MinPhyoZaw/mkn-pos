@@ -214,7 +214,7 @@ export default function Page() {
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div className="price-value" style={{ fontSize: 15, fontWeight: 700 }}>{money(product.sellingPrice)}</div>
-                      <div style={{ fontSize: 12, color: "#1769e0", fontWeight: 700 }}> ထည့်မည်</div>
+                      <div style={{ fontSize: 12, color: "#0F766E", fontWeight: 700 }}> ထည့်မည်</div>
                     </div>
                   </button>
                 ))
@@ -329,7 +329,7 @@ const productCardStyle: React.CSSProperties = {
 
 const stockBadgeStyle: React.CSSProperties = {
   background: "#edf4ff",
-  color: "#1769e0",
+  color: "#0F766E",
   borderRadius: 999,
   padding: "5px 8px",
   fontSize: 11,
@@ -364,7 +364,7 @@ const removeButtonStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  background: "#1769e0",
+  background: "#0F766E",
   color: "#fff",
   border: "none",
   borderRadius: 10,

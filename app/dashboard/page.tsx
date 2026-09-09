@@ -172,13 +172,13 @@ export default function DashboardPage() {
       description: "All orders in the system",
       icon: ClipboardList,
 
-      cardBg: "#eff6ff",
-      borderColor: "#bfdbfe",
+      cardBg: "#ECFEFF",
+      borderColor: "#D9EEEA",
 
-      iconBg: "#dbeafe",
-      iconColor: "#2563eb",
+      iconBg: "#ECFEFF",
+      iconColor: "#0F766E",
 
-      valueColor: "#1d4ed8",
+      valueColor: "#0F766E",
     },
 
     {
@@ -187,13 +187,13 @@ export default function DashboardPage() {
       description: "Available inventory items",
       icon: Package,
 
-      cardBg: "#f5f3ff",
-      borderColor: "#ddd6fe",
+      cardBg: "#F0FDFA",
+      borderColor: "#D9EEEA",
 
-      iconBg: "#ede9fe",
-      iconColor: "#7c3aed",
+      iconBg: "#CCFBF1",
+      iconColor: "#0F766E",
 
-      valueColor: "#6d28d9",
+      valueColor: "#0F766E",
     },
 
     {
@@ -230,7 +230,7 @@ export default function DashboardPage() {
     fontSize: "2.2rem",
     lineHeight: 1.15,
     fontWeight: 800,
-    color: "#0f172a",
+    color: "#134E4A",
   };
 
   const subtitleStyle: React.CSSProperties = {
@@ -255,7 +255,7 @@ export default function DashboardPage() {
     alignItems: "center",
     gap: "8px",
 
-    background: "#2563eb",
+    background: "#0F766E",
     color: "#ffffff",
 
     padding: "12px 18px",
@@ -515,7 +515,7 @@ export default function DashboardPage() {
               background: "#f8fbff",
 
               border:
-                "1px solid #dbeafe",
+                "1px solid #D9EEEA",
             }}
           >
             <div
@@ -636,7 +636,7 @@ export default function DashboardPage() {
                         maxWidth: "36px",
                         height: `${Math.max(12, (day.total / maxChartValue) * 100)}px`,
                         minHeight: "12px",
-                        background: day.total > 0 ? "#60a5fa" : "#e2e8f0",
+                        background: day.total > 0 ? "#0F766E" : "#D9EEEA",
                         borderRadius: "10px 10px 6px 6px",
                         boxShadow: day.total > 0 ? "0 4px 10px rgba(96, 165, 250, 0.3)" : "none",
                       }}
@@ -665,7 +665,7 @@ export default function DashboardPage() {
               background: "#faf8ff",
 
               border:
-                "1px solid #ede9fe",
+                "1px solid #D9EEEA",
             }}
           >
             <div
@@ -723,14 +723,14 @@ export default function DashboardPage() {
                       "center",
 
                     background:
-                      "#ede9fe",
+                      "#ECFEFF",
                   }}
                 >
                   <ShoppingCart
                     size={22}
                     style={{
                       color:
-                        "#7c3aed",
+                        "#0F766E",
                     }}
                   />
                 </div>
@@ -784,7 +784,7 @@ export default function DashboardPage() {
                       gap: "12px",
                       padding: "12px 14px",
                       background: "#ffffff",
-                      border: "1px solid #ede9fe",
+                      border: "1px solid #D9EEEA",
                       borderRadius: "12px",
                     }}
                   >
@@ -792,7 +792,7 @@ export default function DashboardPage() {
                       <div
                         style={{
                           fontWeight: 700,
-                          color: "#0f172a",
+                          color: "#134E4A",
                         }}
                       >
                         Sale #{sale.id}
@@ -903,7 +903,7 @@ export default function DashboardPage() {
                 href="/stock"
                 style={{
                   color:
-                    "#2563eb",
+                    "#0F766E",
 
                   fontWeight: 600,
 
@@ -959,7 +959,7 @@ export default function DashboardPage() {
                             700,
 
                           color:
-                            "#0f172a",
+                            "#134E4A",
                         }}
                       >
                         {product.name}

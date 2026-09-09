@@ -473,7 +473,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const primaryButtonStyle: React.CSSProperties = {
-  background: "#1769e0",
+  background: "#0F766E",
   color: "#fff",
   border: "none",
   borderRadius: 10,
@@ -494,7 +494,7 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const editButtonStyle: React.CSSProperties = {
   background: "#edf4ff",
-  color: "#1769e0",
+  color: "#0F766E",
   border: "1px solid #dfe8ff",
   borderRadius: 8,
   padding: "6px 10px",
@@ -515,7 +515,7 @@ const deleteButtonStyle: React.CSSProperties = {
 const rowEditButtonStyle: React.CSSProperties = {
   ...editButtonStyle,
   background: "transparent",
-  color: "#2563eb",
+  color: "#0F766E",
   border: "none",
   padding: "6px 4px",
 };
