@@ -159,7 +159,7 @@ export default function Page() {
       setCart([]);
       setCashReceived("");
       setError("");
-      setNotice(`Sale completed successfully. Sale #${result.saleId} • Total: ${money(result.totalAmount)} • Change: ${money(result.changeAmount)}`);
+      setNotice(`Sale completed successfully. Sale #${result.saleId} • Total: ${money(result.totalAmount)} •: ${money(result.changeAmount)}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to complete sale.";
       setError(message);
@@ -170,7 +170,7 @@ export default function Page() {
     <AppShell>
       <div style={{ maxWidth: 1400, margin: "0 auto" }}>
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>New Sale</h1>
+          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>ကုန်ပစ္စည်းရောင်းချခြင်း</h1>
         </div>
 
         {notice ? <div style={noticeStyle}>{notice}</div> : null}
@@ -182,7 +182,7 @@ export default function Page() {
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search products..."
+              placeholder="ကုန်ပစ္စည်းရှာမည်..."
               style={inputStyle}
             />
 
@@ -214,7 +214,7 @@ export default function Page() {
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div className="price-value" style={{ fontSize: 15, fontWeight: 700 }}>{money(product.sellingPrice)}</div>
-                      <div style={{ fontSize: 12, color: "#1769e0", fontWeight: 700 }}>Add</div>
+                      <div style={{ fontSize: 12, color: "#1769e0", fontWeight: 700 }}> ထည့်မည်</div>
                     </div>
                   </button>
                 ))
@@ -223,10 +223,10 @@ export default function Page() {
           </div>
 
           <div style={panelStyle}>
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>Cart</div>
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>ဈေးခြင်းတောင်း</div>
 
             {cart.length === 0 ? (
-              <div style={{ color: "#667085", padding: "18px 0" }}>No items in the cart.</div>
+              <div style={{ color: "#667085", padding: "18px 0" }}>ကုန်ပစ္စည်းမရှိသေးပါ</div>
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 {cart.map((item) => (
@@ -247,7 +247,7 @@ export default function Page() {
                         <button type="button" style={qtyButtonStyle} onClick={() => adjustQuantity(item.productId, 1)}>+</button>
                       </div>
 
-                      <button type="button" style={removeButtonStyle} onClick={() => removeFromCart(item.productId)}>Remove</button>
+                      <button type="button" style={removeButtonStyle} onClick={() => removeFromCart(item.productId)}>ဖယ်ထုတ်မည်</button>
                     </div>
                   </div>
                 ))}
@@ -256,11 +256,11 @@ export default function Page() {
 
             <div style={{ borderTop: "1px solid #edf2f7", marginTop: 18, paddingTop: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={{ color: "#475467" }}>Total</span>
+                <span style={{ color: "#475467" }}>စုစုပေါင်းကျသင့်ငွေ</span>
                 <strong className="price-value">{money(totalAmount)}</strong>
               </div>
 
-              <label style={labelStyle}>Cash Received</label>
+              <label style={labelStyle}>လက်ခံရရှိငွေ</label>
               <input
                 type="number"
                 min="0"
@@ -272,7 +272,7 @@ export default function Page() {
               />
 
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 18 }}>
-                <span style={{ color: "#475467" }}>Change</span>
+                <span style={{ color: "#475467" }}>ပြန်အမ်းငွေ</span>
                 <strong className="price-value" style={{ color: changeAmount >= 0 ? "#667085" : "#b91c1c" }}>{money(Math.max(changeAmount, 0))}</strong>
               </div>
 
@@ -288,7 +288,7 @@ export default function Page() {
                   fontSize: 16,
                 }}
               >
-                Complete Sale
+                အရောင်းအတည်ပြုမည်
               </button>
             </div>
           </div>

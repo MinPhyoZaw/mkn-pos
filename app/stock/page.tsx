@@ -98,9 +98,9 @@ export default function StockPage() {
 	};
 
 	return <AppShell><div className="stock-page">
-		<header className="stock-header"><div><h1>Stock Management</h1><p>Track inventory levels and stock movements.</p></div></header>
+		<header className="stock-header"><div><h1>ကုန်ပစ္စည်းလက်ကျန်စီမံခန့်ခွဲမှု</h1><p>Track inventory levels and stock movements.</p></div></header>
 		{notice && <div className="stock-notice">{notice}</div>}{error && !modalMode && <div className="stock-error">{error}</div>}
-		<section className="stock-summary-grid"><SummaryCard label="Total Products" value={summary.total} className="total" /><SummaryCard label="In Stock" value={summary.inStock} className="in-stock" /><SummaryCard label="Low Stock" value={summary.lowStock} className="low-stock" /><SummaryCard label="Out of Stock" value={summary.outOfStock} className="out-stock" /></section>
+		<section className="stock-summary-grid"><SummaryCard label="စုစုပေါင်းကုန်ပစ္စည်း" value={summary.total} className="total" /><SummaryCard label="လက်ကျန်ရှိသော ကုန်ပစ္စည်း" value={summary.inStock} className="in-stock" /><SummaryCard label="လက်ကျန်နည်းနေသော ကုန်ပစ္စည်း" value={summary.lowStock} className="low-stock" /><SummaryCard label="လက်ကျန်(လုံး၀)မရှိသောကုန်ပစ္စည်း" value={summary.outOfStock} className="out-stock" /></section>
 		<section className="stock-panel"><div className="stock-filters"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products..." /><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="ALL">Category: All</option>{categories.map((name) => <option key={name} value={name}>{name}</option>)}</select><select value={stockFilter} onChange={(event) => setStockFilter(event.target.value as StockFilter)}><option value="ALL">All Stock</option><option value="IN_STOCK">In Stock</option><option value="LOW_STOCK">Low Stock</option><option value="OUT_OF_STOCK">Out of Stock</option></select></div>
 			<div className="stock-table-wrap"><table className="stock-table"><thead><tr><th>Product</th><th>Category</th><th>Current Stock</th><th>Low Stock Alert</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 				{loading && <tr><td colSpan={6} className="stock-empty">Loading products...</td></tr>}

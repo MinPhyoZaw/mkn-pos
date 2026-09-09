@@ -92,6 +92,13 @@ ipcMain.handle("dashboard:getOverview", async () => {
 
   const monthSales = monthSalesRows.reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
 
+  const todayGrossProfit = completedSales
+    .filter((sale) => {
+      const createdAt = new Date(sale.createdAt);
+      return createdAt >= today && createdAt < new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    })
+    .reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + Number(item.profit || 0), 0), 0);
+
   const grossProfit = monthSalesRows.reduce((sum, sale) => {
     const profitForSale = sale.items.reduce((itemSum, item) => itemSum + Number(item.profit || 0), 0);
     return sum + profitForSale;
@@ -121,6 +128,7 @@ ipcMain.handle("dashboard:getOverview", async () => {
 
   return {
     todaySales,
+    todayGrossProfit,
     last7DaysSales,
     monthSales,
     grossProfit,

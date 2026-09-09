@@ -26,6 +26,7 @@ type DailySale = {
 
 type SalesOverview = {
   todaySales: number;
+  todayGrossProfit: number;
   last7DaysSales: number;
   monthSales: number;
   grossProfit: number;
@@ -41,6 +42,7 @@ const initial = {
 
 const overviewInitial: SalesOverview = {
   todaySales: 0,
+  todayGrossProfit: 0,
   last7DaysSales: 0,
   monthSales: 0,
   grossProfit: 0,
@@ -150,7 +152,7 @@ export default function DashboardPage() {
 
   const cards = [
     {
-      label: "Today's Sales",
+      label: "ယနေ့ရောင်းရငွေ",
       value: money(stats.todaySales),
       description: "Sales recorded today",
       icon: Banknote,
@@ -165,7 +167,7 @@ export default function DashboardPage() {
     },
 
     {
-      label: "Total Orders",
+      label: "အော်ဒါ",
       value: String(stats.totalOrders),
       description: "All orders in the system",
       icon: ClipboardList,
@@ -180,7 +182,7 @@ export default function DashboardPage() {
     },
 
     {
-      label: "Total Products",
+      label: "ကုန်ပစ္စည်းများ",
       value: String(stats.totalProducts),
       description: "Available inventory items",
       icon: Package,
@@ -195,7 +197,7 @@ export default function DashboardPage() {
     },
 
     {
-      label: "Low Stock Items",
+      label: "လက်ကျန်နည်းနေသော ကုန်ပစ္စည်းများ",
       value: String(stats.lowStockItems),
       description: "Items below reorder level",
       icon: TriangleAlert,
@@ -374,7 +376,7 @@ export default function DashboardPage() {
             >
               <ShoppingCart size={18} />
 
-              <span>+ New Sale</span>
+              <span>+ရောင်းမည်</span>
             </a>
           </div>
         </div>
@@ -533,7 +535,7 @@ export default function DashboardPage() {
                   color: "#1e3a8a",
                 }}
               >
-                Sales Overview
+                အရောင်းအနှစ်ချုပ်
               </h3>
 
               <p
@@ -561,10 +563,11 @@ export default function DashboardPage() {
               }}
             >
               {[
-                { label: "Today", value: salesOverview.todaySales },
-                { label: "Last 7 Days", value: salesOverview.last7DaysSales },
-                { label: "This Month", value: salesOverview.monthSales },
-                { label: "Gross Profit", value: salesOverview.grossProfit },
+                { label: "ယနေ့ရောင်းရငွေ", value: salesOverview.todaySales },
+                { label: "ယနေ့ အသားတင်အမြတ်", value: salesOverview.todayGrossProfit },
+                { label: "တစ်ပတ်အတွင်း ရောင်းရငွေ", value: salesOverview.last7DaysSales },
+                { label: "ယခုလ‌ ရောင်းရငွေ", value: salesOverview.monthSales },
+                { label: "ယခုလ အသားတင်အမြတ် ", value: salesOverview.grossProfit },
               ].map((metric) => (
                 <div
                   key={metric.label}
@@ -679,10 +682,10 @@ export default function DashboardPage() {
 
                   fontWeight: 700,
 
-                  color: "#5b21b6",
+                  color: "green",
                 }}
               >
-                Recent Sales
+                နောက်ဆုံးရောင်းအားများ
               </h3>
 
               <p

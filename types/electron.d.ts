@@ -175,6 +175,14 @@ type StockApi = {
 
 type DashboardApi = {
   getStats: () => Promise<{ todaySales: number; totalOrders: number; totalProducts: number; lowStockItems: number }>;
+  getOverview: () => Promise<{
+    todaySales: number;
+    todayGrossProfit: number;
+    last7DaysSales: number;
+    monthSales: number;
+    grossProfit: number;
+    dailySales: Array<{ date: string; label: string; total: number }>;
+  }>;
 };
 
 export interface ReportSummary {

@@ -155,7 +155,7 @@ export default function CategoriesPage() {
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Categories</h1>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>ကုန်ပစ္စည်းအမျိုးအစား စာမျက်နှာ</h1>
             <p style={{ margin: "8px 0 0", color: "#667085" }}>Manage product categories</p>
           </div>
           <button onClick={openCreateModal} style={primaryButtonStyle}>+ Add Category</button>
@@ -167,10 +167,10 @@ export default function CategoriesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc", color: "#475467" }}>
-                <th style={thStyle}>Category Name</th>
-                <th style={thStyle}>Products</th>
-                <th style={thStyle}>Created Date</th>
-                <th style={thStyle}>Actions</th>
+                <th style={thStyle}>ကုန်ပစ္စည်းအမျိုးအစား</th>
+                <th style={thStyle}>ကုန်ပစ္စည်းအရေအတွက်</th>
+                <th style={thStyle}>ရက်စွဲ</th>
+                <th style={thStyle}>လုပ်ဆောင်ချက်</th>
               </tr>
             </thead>
             <tbody>

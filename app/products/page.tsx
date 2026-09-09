@@ -206,7 +206,7 @@ export default function Page() {
 
   const handleDelete = async (product: Product) => {
     if (typeof window === "undefined") return;
-    const confirmDelete = window.confirm("Are you sure you want to delete this product?");
+    const confirmDelete = window.confirm("ယခုကုန်ပစ္စည်းကို ဖျက်ရန်သေချာပြီလား ?");
     if (!confirmDelete) return;
 
     const electronApi = (window as any).electron;
@@ -220,7 +220,7 @@ export default function Page() {
       await refreshData();
       setNotice(`Product "${product.name}" deleted.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "This product cannot be deleted because it is referenced by sales records.";
+      const message = error instanceof Error ? error.message : "ဤကုန်ပစ္စည်းကို ယခင်အရောင်းမှတ်တမ်းများတွင် အသုံးပြုထားပြီးဖြစ်သောကြောင့် ဖျက်၍မရပါ။ မရောင်းတော့ပါက Inactive လုပ်ထားနိုင်ပါသည်။";
       window.alert(message);
     }
   };
@@ -230,10 +230,10 @@ export default function Page() {
       <div style={{ maxWidth: 1260, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>Products</h1>
-            <p style={{ margin: "8px 0 0", color: "#667085" }}>Manage your shop products</p>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800 }}>ကုန်ပစ္စည်းစာမျက်နှာ</h1>
+            <p style={{ margin: "8px 0 0", color: "#667085" }}>သင့်ဆိုင်ရဲ့ကုန်ပစ္စည်းများကိုအလွယ်တကူစီမံခန့်ခွဲလိုက်ပါ</p>
           </div>
-          <button onClick={openCreateModal} style={primaryButtonStyle}>+ Add Product</button>
+          <button onClick={openCreateModal} style={primaryButtonStyle}>ကုန်ပစ္စည်းအသစ်ထည့်မည်</button>
         </div>
 
         {notice ? (
@@ -243,7 +243,7 @@ export default function Page() {
         <div style={toolbarStyle}>
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="ကုန်ပစ္စည်းရှာမည်..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             style={inputStyle}
@@ -258,7 +258,7 @@ export default function Page() {
             ))}
           </select>
           <select style={inputStyle} value={selectedStockStatus} onChange={(event) => setSelectedStockStatus(event.target.value)}>
-            <option value="all">Stock Status: All</option>
+            <option value="all">လက်ကျန်အခြေနေ: All</option>
             <option value="in">In Stock</option>
             <option value="low">Low Stock</option>
             <option value="out">Out of Stock</option>
@@ -269,20 +269,20 @@ export default function Page() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f8fafc", color: "#475467" }}>
-                <th style={thStyle}>Product Name</th>
-                <th style={thStyle}>Category</th>
-                <th style={thStyle}>Cost Price</th>
-                <th style={thStyle}>Selling Price</th>
-                <th style={thStyle}>Stock</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Actions</th>
+                <th style={thStyle}>ကုန်ပစ္စည်းအမည်</th>
+                <th style={thStyle}>အမျိုးအစား</th>
+                <th style={thStyle}>၀ယ်ဈေး</th>
+                <th style={thStyle}>ရောင်းဈေး</th>
+                <th style={thStyle}>လက်ကျန်</th>
+                <th style={thStyle}>အခြေနေ</th>
+                <th style={thStyle}>လုပ်ဆောင်ချက်</th>
               </tr>
             </thead>
             <tbody>
               {!loading && filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: "center", padding: 24, color: "#667085" }}>
-                    No products found.
+                    ကုန်ပစ္စည်းရှာမတွေ့ပါ (မရှိသေးပါ)
                   </td>
                 </tr>
               ) : null}
@@ -329,7 +329,7 @@ export default function Page() {
 
               <div style={fieldGridStyle}>
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Product Name</label>
+                  <label style={labelStyle}>ကုန်ပစ္စည်းအမည်</label>
                   <input
                     autoFocus={editingId === null}
                     value={form.name}
@@ -339,7 +339,7 @@ export default function Page() {
                 </div>
 
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Category</label>
+                  <label style={labelStyle}>အမျိုးအစား</label>
                   <select
                     value={form.categoryId ?? ""}
                     onChange={(event) => handleFieldChange("categoryId", event.target.value === "" ? null : Number(event.target.value))}
@@ -355,7 +355,7 @@ export default function Page() {
                 </div>
 
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Cost Price</label>
+                  <label style={labelStyle}>၀ယ်ဈေး</label>
                   <input
                     type="number"
                     min="0"
@@ -367,7 +367,7 @@ export default function Page() {
                 </div>
 
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Selling Price</label>
+                  <label style={labelStyle}>ရောင်းဈေး</label>
                   <input
                     type="number"
                     min="0"
@@ -379,7 +379,7 @@ export default function Page() {
                 </div>
 
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Initial Stock Quantity</label>
+                  <label style={labelStyle}>လက်ကျန်အရေအတွက်</label>
                   <input
                     type="number"
                     min="0"
@@ -390,7 +390,7 @@ export default function Page() {
                 </div>
 
                 <div style={fieldStyle}>
-                  <label style={labelStyle}>Low Stock Alert Level</label>
+                  <label style={labelStyle}>လက်ကျန်သတိပေးရန် အရေအတွက်</label>
                   <input
                     type="number"
                     min="0"
