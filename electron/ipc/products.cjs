@@ -1,5 +1,6 @@
 const { ipcMain } = require("electron");
 const { getPrisma } = require("../services/database.cjs");
+const { readSettings } = require("./settings.cjs");
 
 function normalizeProductData(data = {}) {
   const categoryId = data.categoryId == null || data.categoryId === "" ? null : Number(data.categoryId);
@@ -30,6 +31,9 @@ ipcMain.handle("products:getAll", async () => {
 ipcMain.handle("products:create", async (_event, data) => {
   const prisma = getPrisma();
   const payload = normalizeProductData(data);
+  if (data?.lowStockLevel === undefined || data?.lowStockLevel === null || data?.lowStockLevel === "") {
+    payload.lowStockLevel = (await readSettings(prisma)).defaultLowStockLevel;
+  }
 
   if (!payload.name) {
     throw new Error("Product name is required.");

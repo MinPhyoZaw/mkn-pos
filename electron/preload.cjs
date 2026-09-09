@@ -50,4 +50,19 @@ contextBridge.exposeInMainWorld("electron", {
   reports: {
     getSummary: (filters) => ipcRenderer.invoke("reports:getSummary", filters),
   },
+
+  backup: {
+    getStatus: () => ipcRenderer.invoke("backup:getStatus"),
+    create: () => ipcRenderer.invoke("backup:create"),
+    getHistory: () => ipcRenderer.invoke("backup:getHistory"),
+    selectFile: () => ipcRenderer.invoke("backup:selectFile"),
+    restore: (backupPath) => ipcRenderer.invoke("backup:restore", backupPath),
+    openFolder: () => ipcRenderer.invoke("backup:openFolder"),
+  },
+
+  settings: {
+    getAll: () => ipcRenderer.invoke("settings:getAll"),
+    update: (settings) => ipcRenderer.invoke("settings:update", settings),
+    getSystemInfo: () => ipcRenderer.invoke("settings:getSystemInfo"),
+  },
 });

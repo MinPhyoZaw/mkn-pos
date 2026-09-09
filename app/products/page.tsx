@@ -25,6 +25,7 @@ export default function Page() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStockStatus, setSelectedStockStatus] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
@@ -32,6 +33,7 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [categoryInput, setCategoryInput] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [defaultLowStockLevel, setDefaultLowStockLevel] = useState(5);
 
   const fetchProducts = async () => {
     const electronApi = typeof window !== "undefined" ? (window as any).electron : undefined;
@@ -65,7 +67,8 @@ export default function Page() {
         return;
       }
 
-      await Promise.all([fetchProducts(), fetchCategories()]);
+      const [settings] = await Promise.all([electronApi.settings?.getAll?.(), fetchProducts(), fetchCategories()]);
+      if (settings) setDefaultLowStockLevel(settings.defaultLowStockLevel);
     } finally {
       setLoading(false);
     }
@@ -81,13 +84,15 @@ export default function Page() {
     return products.filter((product) => {
       const matchesSearch = !query || product.name.toLowerCase().includes(query);
       const matchesCategory = selectedCategory === "all" || String(product.categoryId) === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const status = product.stockQty <= 0 ? "out" : product.stockQty <= product.lowStockLevel ? "low" : "in";
+      const matchesStockStatus = selectedStockStatus === "all" || status === selectedStockStatus;
+      return matchesSearch && matchesCategory && matchesStockStatus;
     });
-  }, [products, search, selectedCategory]);
+  }, [products, search, selectedCategory, selectedStockStatus]);
 
   const openCreateModal = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, lowStockLevel: defaultLowStockLevel });
     setFormError("");
     setFormOpen(true);
   };
@@ -252,6 +257,12 @@ export default function Page() {
               </option>
             ))}
           </select>
+          <select style={inputStyle} value={selectedStockStatus} onChange={(event) => setSelectedStockStatus(event.target.value)}>
+            <option value="all">Stock Status: All</option>
+            <option value="in">In Stock</option>
+            <option value="low">Low Stock</option>
+            <option value="out">Out of Stock</option>
+          </select>
         </div>
 
         <div style={tableCardStyle}>
@@ -276,24 +287,23 @@ export default function Page() {
                 </tr>
               ) : null}
 
-              {filteredProducts.map((product, index) => {
-                const isLowStock = product.stockQty <= product.lowStockLevel;
-                const rowStyle = index % 2 === 0 ? cyanProductRowStyle : greenProductRowStyle;
+              {filteredProducts.map((product) => {
+                const status = product.stockQty <= 0 ? "Out of Stock" : product.stockQty <= product.lowStockLevel ? "Low Stock" : "In Stock";
 
                 return (
-                  <tr key={product.id} style={rowStyle}>
-                    <td style={productCellStyle}>{product.name}</td>
-                    <td style={productCellStyle}>{product.category?.name ?? "Uncategorized"}</td>
-                    <td style={productCellStyle}>{money(product.costPrice)}</td>
-                    <td style={productCellStyle}>{money(product.sellingPrice)}</td>
-                    <td style={productCellStyle}>{product.stockQty}</td>
-                    <td style={productCellStyle}>
-                      <span style={isLowStock ? lowStockBadgeStyle : inStockBadgeStyle}>{isLowStock ? "Low Stock" : "In Stock"}</span>
+                  <tr key={product.id} className="product-row">
+                    <td className="product-name-cell" style={tdStyle}><strong>{product.name}</strong></td>
+                    <td style={tdStyle}><span className="product-category-badge">{product.category?.name ?? "Uncategorized"}</span></td>
+                    <td style={tdStyle}>{money(product.costPrice)}</td>
+                    <td style={tdStyle}>{money(product.sellingPrice)}</td>
+                    <td style={tdStyle}>{product.stockQty}</td>
+                    <td style={tdStyle}>
+                      <span className={`product-status-badge ${status.toLowerCase().replaceAll(" ", "-")}`}>{status}</span>
                     </td>
-                    <td style={productCellStyle}>
+                    <td style={tdStyle}>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button style={rowEditButtonStyle} onClick={() => openEditModal(product)}>Edit</button>
-                        <button style={rowDeleteButtonStyle} onClick={() => handleDelete(product)}>Delete</button>
+                        <button className="product-action-edit" style={rowEditButtonStyle} onClick={() => openEditModal(product)}>Edit</button>
+                        <button className="product-action-delete" style={rowDeleteButtonStyle} onClick={() => handleDelete(product)}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -428,10 +438,10 @@ const toolbarStyle: React.CSSProperties = {
 
 const tableCardStyle: React.CSSProperties = {
   background: "#fff",
-  border: "1px solid #e8edf5",
+  border: "1px solid #e2e8f0",
   borderRadius: 16,
   overflow: "hidden",
-  boxShadow: "0 6px 18px rgba(15, 23, 42, 0.02)",
+  boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
 };
 
 const thStyle: React.CSSProperties = {
@@ -439,30 +449,17 @@ const thStyle: React.CSSProperties = {
   padding: "16px 14px",
   fontSize: 12,
   fontWeight: 700,
+  color: "#64748b",
   textTransform: "uppercase",
   letterSpacing: "0.04em",
 };
 
 const tdStyle: React.CSSProperties = {
   padding: "16px 14px",
-  color: "#1f2937",
+  color: "#64748b",
   fontSize: 14,
   verticalAlign: "middle",
-};
-
-const cyanProductRowStyle: React.CSSProperties = {
-  background: "#06b6d4",
-  color: "#fff",
-};
-
-const greenProductRowStyle: React.CSSProperties = {
-  background: "#7acb98",
-  color: "#fff",
-};
-
-const productCellStyle: React.CSSProperties = {
-  ...tdStyle,
-  color: "#fff",
+  borderBottom: "1px solid #eef2f7",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -517,16 +514,18 @@ const deleteButtonStyle: React.CSSProperties = {
 
 const rowEditButtonStyle: React.CSSProperties = {
   ...editButtonStyle,
-  background: "rgba(255, 255, 255, 0.2)",
-  color: "#fff",
-  borderColor: "rgba(255, 255, 255, 0.65)",
+  background: "transparent",
+  color: "#2563eb",
+  border: "none",
+  padding: "6px 4px",
 };
 
 const rowDeleteButtonStyle: React.CSSProperties = {
   ...deleteButtonStyle,
-  background: "rgba(255, 255, 255, 0.2)",
-  color: "#fff",
-  borderColor: "rgba(255, 255, 255, 0.65)",
+  background: "transparent",
+  color: "#b91c1c",
+  border: "none",
+  padding: "6px 4px",
 };
 
 const noticeStyle: React.CSSProperties = {

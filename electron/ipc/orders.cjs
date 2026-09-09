@@ -1,5 +1,6 @@
 const { ipcMain } = require("electron");
 const { getPrisma } = require("../services/database.cjs");
+const { readSettings } = require("./settings.cjs");
 
 const PAYMENT_STATUSES = new Set(["UNPAID", "PAID"]);
 const ORDER_STATUSES = new Set(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]);
@@ -111,6 +112,9 @@ ipcMain.handle("orders:updateStatus", async (_event, id, status) => {
     const order = await tx.order.findUnique({ where: { id: orderId }, include: includeItems });
     if (!order) throw new Error("Order not found.");
     if (order.saleId) return order;
+    if (order.paymentStatus !== "PAID" && !(await readSettings(tx)).allowUnpaidOrderCompletion) {
+      throw new Error("Please mark this order as paid before completing it.");
+    }
 
     const quantities = new Map();
     for (const item of order.items) {

@@ -198,6 +198,56 @@ type ReportsApi = {
   getSummary: (filters: { preset: string; startDate?: string; endDate?: string }) => Promise<ReportSummaryData>;
 };
 
+export interface BackupStatus {
+  databaseName: string;
+  databasePath: string;
+  databaseSize: number;
+  backupDirectory: string;
+  lastBackup: string | null;
+}
+
+export interface BackupHistoryItem {
+  fileName: string;
+  fullPath: string;
+  createdAt: string;
+  size: number;
+}
+
+type BackupApi = {
+  getStatus: () => Promise<BackupStatus>;
+  create: () => Promise<BackupHistoryItem>;
+  getHistory: () => Promise<BackupHistoryItem[]>;
+  selectFile: () => Promise<string | null>;
+  restore: (backupPath: string) => Promise<{ success: boolean; restarting: boolean }>;
+  openFolder: () => Promise<string>;
+};
+
+export interface PosSettings {
+  shopName: string;
+  shopPhone: string;
+  shopAddress: string;
+  receiptFooter: string;
+  receiptShowShopName: boolean;
+  receiptShowPhone: boolean;
+  receiptShowAddress: boolean;
+  receiptShowFooter: boolean;
+  defaultLowStockLevel: number;
+  allowUnpaidOrderCompletion: boolean;
+}
+
+export interface SystemInfo {
+  appVersion: string;
+  databaseName: string;
+  databasePath: string;
+  backupPath: string;
+}
+
+type SettingsApi = {
+  getAll: () => Promise<PosSettings>;
+  update: (settings: PosSettings) => Promise<PosSettings>;
+  getSystemInfo: () => Promise<SystemInfo>;
+};
+
 interface ElectronApi {
   products: ProductApi;
   categories: CategoryApi;
@@ -207,6 +257,8 @@ interface ElectronApi {
   stock: StockApi;
   dashboard: DashboardApi;
   reports: ReportsApi;
+  backup: BackupApi;
+  settings: SettingsApi;
 }
 
 declare global {
