@@ -15,6 +15,34 @@ function normalizeProductData(data = {}) {
   };
 }
 
+function productSelect() {
+  return { id: true, name: true, categoryId: true, costPrice: true, sellingPrice: true, stockQty: true, lowStockLevel: true, category: { select: { id: true, name: true } } };
+}
+
+function productWhere(filters = {}) {
+  const search = String(filters.search ?? "").trim();
+  const categoryId = filters.categoryId == null || filters.categoryId === "all" ? undefined : Number(filters.categoryId);
+  const stockStatus = String(filters.stockStatus ?? "all").replace("low", "lowStock").replace("out", "outOfStock").replace("in", "inStock");
+  const where = {
+    ...(search ? { name: { contains: search } } : {}),
+    ...(Number.isInteger(categoryId) ? { categoryId } : {}),
+  };
+  if (stockStatus === "outOfStock") where.stockQty = { lte: 0 };
+  if (stockStatus === "inStock") where.stockQty = { gt: 0 };
+  return where;
+}
+
+function normalizedProductWhere(filters = {}) {
+  const where = productWhere(filters);
+  if (String(filters.stockStatus ?? "all") === "lowStock") {
+    delete where.AND;
+    const search = String(filters.search ?? "").trim();
+    const categoryId = filters.categoryId == null || filters.categoryId === "all" ? undefined : Number(filters.categoryId);
+    return { search, categoryId };
+  }
+  return where;
+}
+
 ipcMain.handle("products:getAll", async () => {
   const prisma = getPrisma();
 
@@ -25,6 +53,35 @@ ipcMain.handle("products:getAll", async () => {
     orderBy: {
       name: "asc",
     },
+  });
+});
+
+ipcMain.handle("products:list", async (_event, filters = {}) => {
+  const prisma = getPrisma();
+  const page = Math.max(1, Number(filters.page) || 1);
+  const pageSize = [25, 50, 100].includes(Number(filters.pageSize)) ? Number(filters.pageSize) : 50;
+  const base = normalizedProductWhere(filters);
+  const stockStatus = String(filters.stockStatus ?? "all").replace("low", "lowStock").replace("out", "outOfStock").replace("in", "inStock");
+  let where = base;
+  if (stockStatus === "lowStock") {
+    const candidates = await prisma.product.findMany({ where: base, select: { id: true, stockQty: true, lowStockLevel: true } });
+    const ids = candidates.filter((product) => product.stockQty > 0 && product.stockQty <= product.lowStockLevel).map((product) => product.id);
+    where = { id: { in: ids } };
+  }
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({ where, select: productSelect(), orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.product.count({ where }),
+  ]);
+  return { products, pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) } };
+});
+
+ipcMain.handle("products:search", async (_event, filters = {}) => {
+  const query = String(filters.query ?? "").trim();
+  const limit = Math.min(100, Math.max(1, Number(filters.limit) || 30));
+  return getPrisma().product.findMany({
+    where: { stockQty: { gt: 0 }, ...(query ? { name: { contains: query } } : {}) },
+    select: { id: true, name: true, sellingPrice: true, stockQty: true, lowStockLevel: true, categoryId: true, category: { select: { name: true } } },
+    orderBy: { name: "asc" }, take: limit,
   });
 });
 
@@ -63,7 +120,7 @@ ipcMain.handle("products:update", async (_event, id, data) => {
 
   return prisma.product.update({
     where: { id: Number(id) },
-    data: payload,
+    data: { name: payload.name, categoryId: payload.categoryId, costPrice: payload.costPrice, sellingPrice: payload.sellingPrice, lowStockLevel: payload.lowStockLevel },
     include: { category: true },
   });
 });

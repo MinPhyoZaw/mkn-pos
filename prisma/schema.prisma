@@ -31,6 +31,9 @@ model Product {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([categoryId])
 }
 
 model Sale {
@@ -45,6 +48,11 @@ model Sale {
   order Order?
 
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt, status])
 }
 
 model SaleItem {
@@ -61,6 +69,9 @@ model SaleItem {
 
   sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
 }
 
 model StockMovement {
@@ -74,6 +85,9 @@ model StockMovement {
   product Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
 }
 
 model Order {
@@ -91,6 +105,10 @@ model Order {
   items         OrderItem[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([paymentStatus])
 }
 
 model OrderItem {

@@ -97,6 +97,8 @@ ipcMain.handle("salesHistory:getAll", async (_event, filters = {}) => {
     ...(filters.to ? { lt: localDateValue(filters.to) } : {}),
   } : undefined);
   const saleNumber = String(filters.search ?? "").trim();
+  const page = Math.max(1, Number(filters.page) || 1);
+  const pageSize = [25, 50, 100].includes(Number(filters.pageSize)) ? Number(filters.pageSize) : 25;
   const where = {
     ...(status ? { status } : {}),
     ...(source ? { source } : {}),
@@ -104,17 +106,23 @@ ipcMain.handle("salesHistory:getAll", async (_event, filters = {}) => {
     ...(saleNumber ? { id: Number.isInteger(Number(saleNumber)) ? Number(saleNumber) : -1 } : {}),
   };
 
-  const sales = await getPrisma().sale.findMany({ where, orderBy: { createdAt: "desc" }, include: includeItems });
+  const prisma = getPrisma();
+  const [sales, total, summaryRows, summaryItems] = await Promise.all([
+    prisma.sale.findMany({ where, orderBy: { createdAt: "desc" }, include: includeItems, skip: (page - 1) * pageSize, take: pageSize }),
+    prisma.sale.count({ where }),
+    prisma.sale.aggregate({ _sum: { totalAmount: true }, _count: { _all: true }, where: { ...where, status: "COMPLETED" } }),
+    prisma.saleItem.aggregate({ _sum: { quantity: true, profit: true }, where: { sale: { ...where, status: "COMPLETED" } } }),
+  ]);
   const rows = sales.map(serializeSale);
-  const completed = rows.filter((sale) => sale.status === "COMPLETED");
   return {
     sales: rows,
     summary: {
-      totalSales: completed.reduce((sum, sale) => sum + sale.totalAmount, 0),
-      grossProfit: completed.reduce((sum, sale) => sum + sale.grossProfit, 0),
-      transactions: completed.length,
-      itemsSold: completed.reduce((sum, sale) => sum + sale.totalQuantity, 0),
+      totalSales: Number(summaryRows._sum.totalAmount ?? 0),
+      grossProfit: Number(summaryItems._sum.profit ?? 0),
+      transactions: summaryRows._count._all,
+      itemsSold: Number(summaryItems._sum.quantity ?? 0),
     },
+    pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
   };
 });
 

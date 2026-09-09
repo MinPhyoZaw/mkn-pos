@@ -64,7 +64,7 @@ ipcMain.handle("dashboard:getOverview", async () => {
 
   const [completedSales, monthSalesRows] = await Promise.all([
     prisma.sale.findMany({
-      where: { status: "COMPLETED" },
+      where: { status: "COMPLETED", createdAt: { gte: daySevenStart, lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) } },
       include: { items: true },
     }),
     prisma.sale.findMany({

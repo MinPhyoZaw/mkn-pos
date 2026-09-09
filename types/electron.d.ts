@@ -80,6 +80,8 @@ export type OrderInput = Omit<Order, "id" | "totalAmount" | "createdAt" | "updat
 
 type ProductApi = {
   getAll: () => Promise<Product[]>;
+  list: (filters: { page: number; pageSize: number; search?: string; categoryId?: number | string; stockStatus?: string }) => Promise<{ products: Product[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>;
+  search: (filters: { query: string; limit?: number }) => Promise<Array<{ id: number; name: string; sellingPrice: number; stockQty: number; lowStockLevel: number; categoryId: number | null; category?: { name: string } | null }>>;
   create: (data: ProductFormData) => Promise<Product>;
   update: (id: number, data: ProductFormData) => Promise<Product>;
   delete: (id: number) => Promise<Product>;
@@ -141,7 +143,7 @@ export interface SaleHistoryRow {
 }
 
 type SalesHistoryApi = {
-  getAll: (filters?: { filterType?: string; month?: string; fromDate?: string; toDate?: string; search?: string; source?: string; status?: string }) => Promise<{ sales: SaleHistoryRow[]; summary: { totalSales: number; grossProfit: number; transactions: number; itemsSold: number } }>;
+  getAll: (filters?: { filterType?: string; month?: string; fromDate?: string; toDate?: string; search?: string; source?: string; status?: string; page?: number; pageSize?: number }) => Promise<{ sales: SaleHistoryRow[]; summary: { totalSales: number; grossProfit: number; transactions: number; itemsSold: number }; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>;
   getById: (id: number) => Promise<SaleHistoryRow>;
   voidSale: (id: number) => Promise<SaleHistoryRow>;
 };

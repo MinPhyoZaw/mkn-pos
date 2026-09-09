@@ -107,7 +107,7 @@ ipcMain.handle("reports:getSummary", async (_event, filters = {}) => {
   const [paidOrders, unpaidOrders, products] = await Promise.all([
     prisma.order.count({ where: { ...orderWhere, paymentStatus: "PAID" } }),
     prisma.order.count({ where: { ...orderWhere, paymentStatus: "UNPAID" } }),
-    prisma.product.findMany({ select: { stockQty: true } }),
+    prisma.product.findMany({ select: { stockQty: true, lowStockLevel: true } }),
   ]);
 
   return {
@@ -118,7 +118,7 @@ ipcMain.handle("reports:getSummary", async (_event, filters = {}) => {
     categoryPerformance: [...categoryMap.values()].sort((a, b) => b.revenue - a.revenue),
     orderPaymentSummary: { paidOrders, unpaidOrders },
     stockSummary: {
-      lowStockItems: products.filter((product) => product.stockQty > 0 && product.stockQty <= 5).length,
+      lowStockItems: products.filter((product) => product.stockQty > 0 && product.stockQty <= product.lowStockLevel).length,
       outOfStockItems: products.filter((product) => product.stockQty <= 0).length,
     },
   };

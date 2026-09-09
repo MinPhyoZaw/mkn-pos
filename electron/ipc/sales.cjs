@@ -47,7 +47,7 @@ ipcMain.handle("sales:create", async (_event, payload = {}) => {
       const productId = Number(item.productId);
       const quantity = toSafeNumber(item.quantity, "Quantity");
       const unitPrice = toSafeNumber(item.unitPrice, "Unit price");
-      const costPrice = toSafeNumber(item.costPrice ?? 0, "Cost price");
+      const requestedCostPrice = toSafeNumber(item.costPrice ?? 0, "Cost price");
 
       if (!productId || productId <= 0) {
         throw new Error("A product in the cart is invalid.");
@@ -55,7 +55,7 @@ ipcMain.handle("sales:create", async (_event, payload = {}) => {
       if (!Number.isInteger(quantity) || quantity < 1) {
         throw new Error("Quantity must be at least 1.");
       }
-      if (unitPrice < 0 || costPrice < 0) {
+      if (unitPrice < 0 || requestedCostPrice < 0) {
         throw new Error("Prices cannot be negative.");
       }
 
@@ -70,6 +70,7 @@ ipcMain.handle("sales:create", async (_event, payload = {}) => {
         throw new Error(`${product.name} only has ${product.stockQty} item(s) left in stock.`);
       }
 
+      const costPrice = Number(product.costPrice);
       const subtotal = quantity * unitPrice;
       normalizedItems.push({
         productId,

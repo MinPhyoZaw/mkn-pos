@@ -20,16 +20,17 @@ export default function Page() {
 
   const loadProducts = async () => {
     const electronApi = typeof window !== "undefined" ? (window as any).electron : undefined;
-    if (!electronApi?.products?.getAll) {
+    if (!electronApi?.products?.search) {
       setProducts([]);
       return;
     }
 
-    const rows = await electronApi.products.getAll();
-    setProducts(rows.filter((product: Product) => product.stockQty > 0));
+    const rows = await electronApi.products.search({ query: search, limit: 30 });
+    setProducts(rows.map((product) => ({ ...product, costPrice: 0, createdAt: "", updatedAt: "" } as Product)));
   };
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
     const refresh = async () => {
       setLoading(true);
       try {
@@ -40,14 +41,11 @@ export default function Page() {
     };
 
     refresh();
-  }, []);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return products.filter((product) => {
-      return !query || product.name.toLowerCase().includes(query);
-    });
-  }, [products, search]);
+  const filteredProducts = products;
 
   const totalAmount = useMemo(
     () => cart.reduce((sum, item) => sum + item.subtotal, 0),
@@ -186,7 +184,8 @@ export default function Page() {
               style={inputStyle}
             />
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(220px, 1fr))", gap: 14, marginTop: 18 }}>
+            <div style={{ maxHeight: 620, overflowY: "auto", paddingRight: 8, scrollbarWidth: "thin", scrollbarColor: "#99d8d0 transparent" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(220px, 1fr))", gap: 14, marginTop: 18 }}>
               {loading ? (
                 <div style={{ gridColumn: "1 / -1", padding: 24, color: "#667085", textAlign: "center" }}>
                   Loading products...
@@ -219,6 +218,7 @@ export default function Page() {
                   </button>
                 ))
               )}
+              </div>
             </div>
           </div>
 

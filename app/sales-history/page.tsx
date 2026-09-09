@@ -33,20 +33,22 @@ export default function SalesHistoryPage() {
 	const [notice, setNotice] = useState("");
 	const [summary, setSummary] = useState({ totalSales: 0, grossProfit: 0, transactions: 0, itemsSold: 0 });
 	const [loading, setLoading] = useState(true);
+	const [pagination, setPagination] = useState({ page: 1, pageSize: 25, total: 0, totalPages: 1 });
 
 	const load = async () => {
 		setError(""); setLoading(true);
 		try {
 			const api = getElectronApi();
 			if (!api?.salesHistory?.getAll) throw new Error("Sales History API is unavailable. Please restart the POS application.");
-			const result = await api.salesHistory.getAll({ filterType: dateRange.toLowerCase(), month, fromDate, toDate, search, source, status });
-			setSales(result.sales); setSummary(result.summary);
+			const result = await api.salesHistory.getAll({ filterType: dateRange.toLowerCase(), month, fromDate, toDate, search, source, status, page, pageSize });
+			setSales(result.sales); setSummary(result.summary); setPagination(result.pagination);
 		} catch (err) { setError(err instanceof Error ? err.message : "Unable to load sales history."); }
 		finally { setLoading(false); }
 	};
-	useEffect(() => { setPage(1); load(); }, [dateRange, month, fromDate, toDate, search, source, status]);
-	const pageCount = Math.max(1, Math.ceil(sales.length / pageSize));
-	const visibleSales = sales.slice((page - 1) * pageSize, page * pageSize);
+	useEffect(() => { setPage(1); }, [dateRange, month, fromDate, toDate, search, source, status, pageSize]);
+	useEffect(() => { load(); }, [dateRange, month, fromDate, toDate, search, source, status, page, pageSize]);
+	const pageCount = pagination.totalPages;
+	const visibleSales = sales;
 	const rangeLabel = dateRange === "TODAY" ? "Today" : dateRange === "THIS_MONTH" ? "This Month" : dateRange === "MONTH" ? monthLabel(month) : dateRange === "LAST_7_DAYS" ? "Last 7 Days" : "Selected Range";
 	const salesLabel = dateRange === "TODAY" ? "Today's Sales" : dateRange === "THIS_MONTH" ? "This Month Sales" : dateRange === "MONTH" ? `${monthLabel(month)} Sales` : "Total Sales";
 	const profitLabel = dateRange === "TODAY" ? "Today's Gross Profit" : dateRange === "THIS_MONTH" ? "This Month Gross Profit" : dateRange === "MONTH" ? `${monthLabel(month)} Gross Profit` : "Gross Profit";
@@ -72,7 +74,7 @@ export default function SalesHistoryPage() {
 				{loading && <tr><td colSpan={9} className="history-empty">Loading sales history...</td></tr>}
 				{!loading && !visibleSales.length && <tr><td colSpan={9} className="history-empty"><strong>No sales found for {rangeLabel}.</strong><span>Try selecting another date range.</span></td></tr>}
 				{visibleSales.map((sale) => <tr key={sale.id}><td><strong>#{sale.id}</strong></td><td>{formatDate(sale.createdAt, true)}</td><td>{sale.itemCount}</td><td>{sale.totalQuantity}</td><td className="history-price">{money(sale.totalAmount)}</td><td className="history-price">{money(sale.grossProfit)}</td><td><span className={`source-badge ${sale.source.toLowerCase()}`}>{sale.source}</span></td><td><span className={`status-badge ${sale.status.toLowerCase()}`}>{sale.status === "COMPLETED" ? "Completed" : "Cancelled"}</span></td><td><button className="view-button" onClick={() => setSelectedSale(sale)}>View</button></td></tr>)}
-			</tbody></table></div><div className="history-pagination"><label>Rows <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select></label><span>{sales.length ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, sales.length)} of ${sales.length}` : "0 sales"}</span><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><button disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></section>
+			</tbody></table></div><div className="history-pagination"><label>Rows <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label><span>{pagination.total ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, pagination.total)} of ${pagination.total}` : "0 sales"}</span><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><button disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)}>Next</button></div></section>
 	</div>
 	{selectedSale && <div className="history-modal-backdrop" onMouseDown={() => setSelectedSale(null)}><div className="history-modal" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}><div className="history-modal-heading"><div><h2>Sale #{selectedSale.id}</h2><p>{formatDate(selectedSale.createdAt, true)}</p></div><button className="history-close" onClick={() => setSelectedSale(null)}>×</button></div><div className="sale-meta"><span>Source <strong>{selectedSale.source}</strong></span><span>Status <strong>{selectedSale.status === "COMPLETED" ? "Completed" : "Cancelled"}</strong></span></div><table className="detail-sale-table"><thead><tr><th>Product</th><th>Price</th><th>Qty</th><th>Subtotal</th></tr></thead><tbody>{selectedSale.items.map((item) => <tr key={item.id}><td><strong>{item.productName}</strong><small>Cost {money(item.costPrice)} / Profit {money(item.profit)}</small></td><td>{money(item.unitPrice)}</td><td>{item.quantity}</td><td>{money(item.subtotal)}</td></tr>)}</tbody></table><div className="sale-totals"><span>Total <strong>{money(selectedSale.totalAmount)}</strong></span><span>Cash Received <strong>{money(selectedSale.cashReceived)}</strong></span><span>Change <strong>{money(selectedSale.changeAmount)}</strong></span><span>Gross Profit <strong>{money(selectedSale.grossProfit)}</strong></span></div><div className="history-modal-actions">{selectedSale.status === "COMPLETED" && <button className="void-button" onClick={() => voidSale(selectedSale)}>Void Sale</button>}<button className="history-primary" onClick={() => setSelectedSale(null)}>Close</button></div></div></div>}
 	</AppShell>;

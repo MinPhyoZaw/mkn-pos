@@ -24,6 +24,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockStatus, setSelectedStockStatus] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
@@ -34,16 +35,19 @@ export default function Page() {
   const [categoryInput, setCategoryInput] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [defaultLowStockLevel, setDefaultLowStockLevel] = useState(5);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
 
   const fetchProducts = async () => {
     const electronApi = typeof window !== "undefined" ? (window as any).electron : undefined;
-    if (!electronApi?.products?.getAll) {
+    if (!electronApi?.products?.list) {
       setProducts([]);
       return;
     }
-
-    const rows = await electronApi.products.getAll();
-    setProducts(rows);
+    const result = await electronApi.products.list({ page, pageSize, search, categoryId: selectedCategory, stockStatus: selectedStockStatus });
+    setProducts(result.products);
+    setPagination(result.pagination);
   };
 
   const fetchCategories = async () => {
@@ -75,20 +79,10 @@ export default function Page() {
   };
 
   useEffect(() => {
-    refreshData();
-  }, []);
-
-  const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return products.filter((product) => {
-      const matchesSearch = !query || product.name.toLowerCase().includes(query);
-      const matchesCategory = selectedCategory === "all" || String(product.categoryId) === selectedCategory;
-      const status = product.stockQty <= 0 ? "out" : product.stockQty <= product.lowStockLevel ? "low" : "in";
-      const matchesStockStatus = selectedStockStatus === "all" || status === selectedStockStatus;
-      return matchesSearch && matchesCategory && matchesStockStatus;
-    });
-  }, [products, search, selectedCategory, selectedStockStatus]);
+    const timer = window.setTimeout(() => { setPage(1); setSearch(searchInput); }, 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+  useEffect(() => { refreshData(); }, [page, pageSize, search, selectedCategory, selectedStockStatus]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -244,12 +238,12 @@ export default function Page() {
           <input
             type="text"
             placeholder="ကုန်ပစ္စည်းရှာမည်..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             style={inputStyle}
           />
 
-          <select style={inputStyle} value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+          <select style={inputStyle} value={selectedCategory} onChange={(event) => { setPage(1); setSelectedCategory(event.target.value); }}>
             <option value="all">All Categories</option>
             {categories.map((category) => (
               <option key={category.id} value={String(category.id)}>
@@ -257,13 +251,15 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <select style={inputStyle} value={selectedStockStatus} onChange={(event) => setSelectedStockStatus(event.target.value)}>
+          <select style={inputStyle} value={selectedStockStatus} onChange={(event) => { setPage(1); setSelectedStockStatus(event.target.value); }}>
             <option value="all">လက်ကျန်အခြေနေ: All</option>
             <option value="in">In Stock</option>
             <option value="low">Low Stock</option>
             <option value="out">Out of Stock</option>
           </select>
         </div>
+
+        <div className="product-pagination"><span>{pagination.total ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, pagination.total)} of ${pagination.total}` : "0 products"}</span><label>Rows <select value={pageSize} onChange={(event) => { setPage(1); setPageSize(Number(event.target.value)); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><button disabled={page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Next</button></div>
 
         <div style={tableCardStyle}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -279,7 +275,7 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {!loading && filteredProducts.length === 0 ? (
+              {!loading && products.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: "center", padding: 24, color: "#667085" }}>
                     ကုန်ပစ္စည်းရှာမတွေ့ပါ (မရှိသေးပါ)
@@ -287,7 +283,7 @@ export default function Page() {
                 </tr>
               ) : null}
 
-              {filteredProducts.map((product) => {
+              {products.map((product) => {
                 const status = product.stockQty <= 0 ? "Out of Stock" : product.stockQty <= product.lowStockLevel ? "Low Stock" : "In Stock";
 
                 return (
@@ -383,6 +379,7 @@ export default function Page() {
                   <input
                     type="number"
                     min="0"
+                    disabled={editingId !== null}
                     value={form.stockQty}
                     onChange={(event) => handleFieldChange("stockQty", Number(event.target.value))}
                     style={inputStyle}
