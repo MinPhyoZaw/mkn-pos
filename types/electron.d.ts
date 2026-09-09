@@ -70,6 +70,7 @@ export interface Order {
   status: OrderStatus;
   orderDate: string | Date;
   notes?: string | null;
+  saleId?: number | null;
   items: OrderItem[];
   createdAt?: string | Date;
   updatedAt?: string | Date;
@@ -111,6 +112,40 @@ type SalesApi = {
   }>;
 };
 
+export type SaleStatus = "COMPLETED" | "CANCELLED";
+export type SaleSource = "POS" | "ORDER";
+
+export interface SaleHistoryItem {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  costPrice: number;
+  subtotal: number;
+  profit: number;
+}
+
+export interface SaleHistoryRow {
+  id: number;
+  createdAt: string;
+  totalAmount: number;
+  cashReceived: number;
+  changeAmount: number;
+  status: SaleStatus;
+  source: SaleSource;
+  items: SaleHistoryItem[];
+  itemCount: number;
+  totalQuantity: number;
+  grossProfit: number;
+}
+
+type SalesHistoryApi = {
+  getAll: (filters?: { search?: string; from?: string; to?: string; source?: string; status?: string }) => Promise<SaleHistoryRow[]>;
+  getById: (id: number) => Promise<SaleHistoryRow>;
+  voidSale: (id: number) => Promise<SaleHistoryRow>;
+};
+
 type OrdersApi = {
   getAll: () => Promise<Order[]>;
   getById: (id: number) => Promise<Order>;
@@ -121,16 +156,57 @@ type OrdersApi = {
   delete: (id: number) => Promise<Order>;
 };
 
+export interface StockMovement {
+  id: number;
+  productId: number;
+  type: string;
+  quantity: number;
+  note?: string | null;
+  createdAt: string | Date;
+  product: Product;
+}
+
+type StockApi = {
+  getProducts: () => Promise<Product[]>;
+  add: (productId: number, quantity: number, note: string) => Promise<Product>;
+  adjust: (productId: number, quantity: number, reason: string, note: string) => Promise<Product>;
+  getMovements: () => Promise<StockMovement[]>;
+};
+
 type DashboardApi = {
   getStats: () => Promise<{ todaySales: number; totalOrders: number; totalProducts: number; lowStockItems: number }>;
+};
+
+export interface ReportSummary {
+  totalSales: number;
+  grossProfit: number;
+  transactions: number;
+  itemsSold: number;
+}
+
+export interface ReportSummaryData {
+  summary: ReportSummary;
+  salesTrend: Array<{ date: string; label: string; total: number }>;
+  topProducts: Array<{ productName: string; quantitySold: number; revenue: number; grossProfit: number }>;
+  sourceBreakdown: Array<{ source: string; total: number }>;
+  categoryPerformance: Array<{ categoryName: string; quantitySold: number; revenue: number; grossProfit: number }>;
+  orderPaymentSummary: { paidOrders: number; unpaidOrders: number };
+  stockSummary: { lowStockItems: number; outOfStockItems: number };
+}
+
+type ReportsApi = {
+  getSummary: (filters: { preset: string; startDate?: string; endDate?: string }) => Promise<ReportSummaryData>;
 };
 
 interface ElectronApi {
   products: ProductApi;
   categories: CategoryApi;
   sales: SalesApi;
+  salesHistory: SalesHistoryApi;
   orders: OrdersApi;
+  stock: StockApi;
   dashboard: DashboardApi;
+  reports: ReportsApi;
 }
 
 declare global {

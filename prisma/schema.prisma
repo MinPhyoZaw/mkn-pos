@@ -39,8 +39,10 @@ model Sale {
   cashReceived Int
   changeAmount Int
   status       String @default("COMPLETED")
+  source       String @default("POS")
 
   items SaleItem[]
+  order Order?
 
   createdAt DateTime @default(now())
 }
@@ -84,6 +86,8 @@ model Order {
   status        String      @default("PENDING")
   orderDate     DateTime    @default(now())
   notes         String?
+  saleId        Int?        @unique
+  sale          Sale?       @relation(fields: [saleId], references: [id])
   items         OrderItem[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

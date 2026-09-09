@@ -7,7 +7,7 @@ import type { CartItem, Product } from "@/types/electron";
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 0,
-  }).format(value) + " MMK";
+  }).format(value) + " ကျပ်";
 
 export default function Page() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -213,7 +213,7 @@ export default function Page() {
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 15, fontWeight: 700 }}>{money(product.sellingPrice)}</div>
+                      <div className="price-value" style={{ fontSize: 15, fontWeight: 700 }}>{money(product.sellingPrice)}</div>
                       <div style={{ fontSize: 12, color: "#1769e0", fontWeight: 700 }}>Add</div>
                     </div>
                   </button>
@@ -233,11 +233,11 @@ export default function Page() {
                   <div key={item.productId} style={cartItemStyle}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ fontWeight: 700 }}>{item.productName}</div>
-                      <div style={{ fontWeight: 700 }}>{money(item.subtotal)}</div>
+                      <div className="price-value" style={{ fontWeight: 700 }}>{money(item.subtotal)}</div>
                     </div>
 
                     <div style={{ color: "#475467", fontSize: 13, marginTop: 4 }}>
-                      {money(item.unitPrice)} × {item.quantity}
+                      <span className="price-value">{money(item.unitPrice)}</span> × {item.quantity}
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
@@ -257,13 +257,14 @@ export default function Page() {
             <div style={{ borderTop: "1px solid #edf2f7", marginTop: 18, paddingTop: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                 <span style={{ color: "#475467" }}>Total</span>
-                <strong>{money(totalAmount)}</strong>
+                <strong className="price-value">{money(totalAmount)}</strong>
               </div>
 
               <label style={labelStyle}>Cash Received</label>
               <input
                 type="number"
                 min="0"
+                className="price-input"
                 value={cashReceived}
                 onChange={(event) => setCashReceived(event.target.value)}
                 placeholder="0"
@@ -272,7 +273,7 @@ export default function Page() {
 
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16, marginBottom: 18 }}>
                 <span style={{ color: "#475467" }}>Change</span>
-                <strong style={{ color: changeAmount >= 0 ? "#0f766e" : "#b91c1c" }}>{money(Math.max(changeAmount, 0))}</strong>
+                <strong className="price-value" style={{ color: changeAmount >= 0 ? "#667085" : "#b91c1c" }}>{money(Math.max(changeAmount, 0))}</strong>
               </div>
 
               <button

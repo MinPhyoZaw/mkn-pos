@@ -35,6 +35,7 @@ function normalizeOrder(data = {}) {
   if (!items.length) throw new Error("Add at least one product to the order.");
   if (!PAYMENT_STATUSES.has(paymentStatus)) throw new Error("Invalid payment status.");
   if (!ORDER_STATUSES.has(status)) throw new Error("Invalid order status.");
+  if (status === "COMPLETED") throw new Error("Complete an order from its status control so stock and sales are updated together.");
   if (Number.isNaN(orderDate.getTime())) throw new Error("Order date is invalid.");
 
   return { customerName, phone, address, notes, paymentStatus, status, orderDate, items };
@@ -97,10 +98,73 @@ ipcMain.handle("orders:update", async (_event, id, data) => {
   });
 });
 
-ipcMain.handle("orders:updateStatus", (_event, id, status) => {
+ipcMain.handle("orders:updateStatus", async (_event, id, status) => {
   const value = String(status ?? "").toUpperCase();
   if (!ORDER_STATUSES.has(value)) throw new Error("Invalid order status.");
-  return getPrisma().order.update({ where: { id: numericId(id, "Order ID") }, data: { status: value }, include: includeItems });
+  const orderId = numericId(id, "Order ID");
+
+  if (value !== "COMPLETED") {
+    return getPrisma().order.update({ where: { id: orderId }, data: { status: value }, include: includeItems });
+  }
+
+  return getPrisma().$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: includeItems });
+    if (!order) throw new Error("Order not found.");
+    if (order.saleId) return order;
+
+    const quantities = new Map();
+    for (const item of order.items) {
+      if (!item.productId) throw new Error(`Cannot complete order. ${item.productName} is no longer linked to a product.`);
+      quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
+    }
+
+    const products = new Map();
+    for (const [productId, quantity] of quantities) {
+      const product = await tx.product.findUnique({ where: { id: productId } });
+      if (!product) throw new Error(`Cannot complete order. Product #${productId} is no longer available.`);
+      if (product.stockQty < quantity) {
+        throw new Error(`Cannot complete order. ${product.name} only has ${product.stockQty} item(s) in stock, but this order requires ${quantity}.`);
+      }
+      products.set(productId, product);
+    }
+
+    const sale = await tx.sale.create({
+      data: {
+        totalAmount: order.totalAmount,
+        cashReceived: order.paymentStatus === "PAID" ? order.totalAmount : 0,
+        changeAmount: 0,
+        source: "ORDER",
+        items: {
+          create: order.items.map((item) => {
+            const product = products.get(item.productId);
+            const costPrice = product.costPrice;
+            return {
+              productId: item.productId,
+              productName: product.name,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              costPrice,
+              subtotal: item.subtotal,
+              profit: (item.unitPrice - costPrice) * item.quantity,
+            };
+          }),
+        },
+      },
+    });
+
+    for (const [productId, quantity] of quantities) {
+      await tx.product.update({ where: { id: productId }, data: { stockQty: { decrement: quantity } } });
+      await tx.stockMovement.create({
+        data: { productId, type: "ORDER_SALE", quantity: -quantity, note: `Completed Order #${order.id}` },
+      });
+    }
+
+    return tx.order.update({
+      where: { id: order.id },
+      data: { status: "COMPLETED", saleId: sale.id },
+      include: includeItems,
+    });
+  });
 });
 
 ipcMain.handle("orders:updatePaymentStatus", (_event, id, status) => {

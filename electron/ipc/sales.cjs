@@ -93,6 +93,7 @@ ipcMain.handle("sales:create", async (_event, payload = {}) => {
         totalAmount,
         cashReceived,
         changeAmount: cashReceived - totalAmount,
+        source: "POS",
         items: {
           create: normalizedItems.map((item) => ({
             productId: item.productId,

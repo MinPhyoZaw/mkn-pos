@@ -16,7 +16,7 @@ const emptyForm: ProductFormData = {
 const money = (value: number) =>
   new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 0,
-  }).format(value) + " MMK";
+  }).format(value) + " ကျပ်";
 
 export default function Page() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -276,23 +276,24 @@ export default function Page() {
                 </tr>
               ) : null}
 
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product, index) => {
                 const isLowStock = product.stockQty <= product.lowStockLevel;
+                const rowStyle = index % 2 === 0 ? cyanProductRowStyle : greenProductRowStyle;
 
                 return (
-                  <tr key={product.id} style={{ borderTop: "1px solid #edf2f7" }}>
-                    <td style={tdStyle}>{product.name}</td>
-                    <td style={tdStyle}>{product.category?.name ?? "Uncategorized"}</td>
-                    <td style={tdStyle}>{money(product.costPrice)}</td>
-                    <td style={tdStyle}>{money(product.sellingPrice)}</td>
-                    <td style={tdStyle}>{product.stockQty}</td>
-                    <td style={tdStyle}>
+                  <tr key={product.id} style={rowStyle}>
+                    <td style={productCellStyle}>{product.name}</td>
+                    <td style={productCellStyle}>{product.category?.name ?? "Uncategorized"}</td>
+                    <td style={productCellStyle}>{money(product.costPrice)}</td>
+                    <td style={productCellStyle}>{money(product.sellingPrice)}</td>
+                    <td style={productCellStyle}>{product.stockQty}</td>
+                    <td style={productCellStyle}>
                       <span style={isLowStock ? lowStockBadgeStyle : inStockBadgeStyle}>{isLowStock ? "Low Stock" : "In Stock"}</span>
                     </td>
-                    <td style={tdStyle}>
+                    <td style={productCellStyle}>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button style={editButtonStyle} onClick={() => openEditModal(product)}>Edit</button>
-                        <button style={deleteButtonStyle} onClick={() => handleDelete(product)}>Delete</button>
+                        <button style={rowEditButtonStyle} onClick={() => openEditModal(product)}>Edit</button>
+                        <button style={rowDeleteButtonStyle} onClick={() => handleDelete(product)}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -304,7 +305,11 @@ export default function Page() {
 
         {formOpen ? (
           <div style={modalBackdropStyle} onClick={closeForm}>
-            <div style={modalStyle} onClick={(event) => event.stopPropagation()}>
+            <div
+              style={modalStyle}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                 <h2 style={{ margin: 0, fontSize: 24 }}>{editingId === null ? "Add Product" : "Edit Product"}</h2>
                 <button onClick={closeForm} style={closeButtonStyle}>×</button>
@@ -316,6 +321,7 @@ export default function Page() {
                 <div style={fieldStyle}>
                   <label style={labelStyle}>Product Name</label>
                   <input
+                    autoFocus={editingId === null}
                     value={form.name}
                     onChange={(event) => handleFieldChange("name", event.target.value)}
                     style={inputStyle}
@@ -343,6 +349,7 @@ export default function Page() {
                   <input
                     type="number"
                     min="0"
+                    className="price-input"
                     value={form.costPrice}
                     onChange={(event) => handleFieldChange("costPrice", Number(event.target.value))}
                     style={inputStyle}
@@ -354,6 +361,7 @@ export default function Page() {
                   <input
                     type="number"
                     min="0"
+                    className="price-input"
                     value={form.sellingPrice}
                     onChange={(event) => handleFieldChange("sellingPrice", Number(event.target.value))}
                     style={inputStyle}
@@ -442,6 +450,21 @@ const tdStyle: React.CSSProperties = {
   verticalAlign: "middle",
 };
 
+const cyanProductRowStyle: React.CSSProperties = {
+  background: "#06b6d4",
+  color: "#fff",
+};
+
+const greenProductRowStyle: React.CSSProperties = {
+  background: "#7acb98",
+  color: "#fff",
+};
+
+const productCellStyle: React.CSSProperties = {
+  ...tdStyle,
+  color: "#fff",
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #dfe7f0",
@@ -490,6 +513,20 @@ const deleteButtonStyle: React.CSSProperties = {
   padding: "6px 10px",
   cursor: "pointer",
   fontWeight: 600,
+};
+
+const rowEditButtonStyle: React.CSSProperties = {
+  ...editButtonStyle,
+  background: "rgba(255, 255, 255, 0.2)",
+  color: "#fff",
+  borderColor: "rgba(255, 255, 255, 0.65)",
+};
+
+const rowDeleteButtonStyle: React.CSSProperties = {
+  ...deleteButtonStyle,
+  background: "rgba(255, 255, 255, 0.2)",
+  color: "#fff",
+  borderColor: "rgba(255, 255, 255, 0.65)",
 };
 
 const noticeStyle: React.CSSProperties = {

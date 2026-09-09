@@ -48,7 +48,7 @@ const overviewInitial: SalesOverview = {
 };
 
 const money = (value: number) =>
-  `${new Intl.NumberFormat("en-US").format(value)} MMK`;
+  `${new Intl.NumberFormat("en-US").format(value)} ကျပ်`;
 
 const formatDayLabel = () =>
   new Intl.DateTimeFormat("en-US", {
@@ -161,7 +161,7 @@ export default function DashboardPage() {
       iconBg: "#dcfce7",
       iconColor: "#15803d",
 
-      valueColor: "#166534",
+      valueColor: "#667085",
     },
 
     {
@@ -589,7 +589,7 @@ export default function DashboardPage() {
                       marginTop: "6px",
                       fontSize: "1rem",
                       fontWeight: 800,
-                      color: "#1d4ed8",
+                      color: "#667085",
                     }}
                   >
                     {money(metric.value)}
@@ -815,7 +815,7 @@ export default function DashboardPage() {
                     >
                       <strong
                         style={{
-                          color: "#6d28d9",
+                          color: "#667085",
                           fontSize: "0.96rem",
                         }}
                       >

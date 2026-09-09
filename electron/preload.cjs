@@ -19,6 +19,12 @@ contextBridge.exposeInMainWorld("electron", {
     create: (data) => ipcRenderer.invoke("sales:create", data),
   },
 
+  salesHistory: {
+    getAll: (filters) => ipcRenderer.invoke("salesHistory:getAll", filters),
+    getById: (id) => ipcRenderer.invoke("salesHistory:getById", id),
+    voidSale: (id) => ipcRenderer.invoke("salesHistory:voidSale", id),
+  },
+
   orders: {
     getAll: () => ipcRenderer.invoke("orders:getAll"),
     getById: (id) => ipcRenderer.invoke("orders:getById", id),
@@ -29,8 +35,19 @@ contextBridge.exposeInMainWorld("electron", {
     delete: (id) => ipcRenderer.invoke("orders:delete", id),
   },
 
+  stock: {
+    getProducts: () => ipcRenderer.invoke("stock:getProducts"),
+    add: (productId, quantity, note) => ipcRenderer.invoke("stock:add", productId, quantity, note),
+    adjust: (productId, quantity, reason, note) => ipcRenderer.invoke("stock:adjust", productId, quantity, reason, note),
+    getMovements: () => ipcRenderer.invoke("stock:getMovements"),
+  },
+
   dashboard: {
     getStats: () => ipcRenderer.invoke("dashboard:getStats"),
     getOverview: () => ipcRenderer.invoke("dashboard:getOverview"),
+  },
+
+  reports: {
+    getSummary: (filters) => ipcRenderer.invoke("reports:getSummary", filters),
   },
 });

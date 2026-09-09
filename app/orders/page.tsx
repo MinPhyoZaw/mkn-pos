@@ -8,7 +8,7 @@ import "./orders.css";
 const statuses: OrderStatus[] = ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"];
 const payments: PaymentStatus[] = ["UNPAID", "PAID"];
 const label = (value: string) => value.charAt(0) + value.slice(1).toLowerCase();
-const money = (value: number) => `${new Intl.NumberFormat("en-US").format(value)} MMK`;
+const money = (value: number) => `${new Intl.NumberFormat("en-US").format(value)} ကျပ်`;
 const dateInput = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
 const emptyForm = (): OrderInput => ({ customerName: "", phone: "", address: "", orderDate: dateInput(new Date()), notes: "", paymentStatus: "UNPAID", status: "PENDING", items: [] });
 const getElectronApi = () => (typeof window !== "undefined" ? (window as any).electron : undefined);
@@ -83,6 +83,7 @@ export default function OrdersPage() {
     if (!form.phone.trim()) return setError("Phone number is required.");
     if (!form.address.trim()) return setError("Address is required.");
     if (!form.items.length) return setError("Add at least one product to the order.");
+    if (editingId !== null && form.status === "COMPLETED" && !window.confirm(`Complete Order #${editingId}?\n\nThis will create a sale, reduce stock, and add this transaction to sales reports.`)) return;
     setSaving(true);
     try {
       const electronApi = getElectronApi();
@@ -90,13 +91,31 @@ export default function OrdersPage() {
         throw new Error("Unable to save order.\nPlease restart the POS application.");
       }
 
-      const payload = { ...form, items: form.items.map((item) => ({ ...item, subtotal: item.unitPrice * item.quantity })) };
+      const completing = editingId !== null && form.status === "COMPLETED";
+      const existing = editingId === null ? null : orders.find((order) => order.id === editingId);
+      const payload = {
+        ...form,
+        status: completing ? (existing?.status ?? "PENDING") : form.status,
+        items: form.items.map((item) => ({ ...item, subtotal: item.unitPrice * item.quantity })),
+      };
       const saved = editingId === null ? await electronApi.orders.create(payload) : await electronApi.orders.update(editingId, payload);
-      await load(); setFormOpen(false); setNotice(`Order #${saved.id} ${editingId === null ? "created" : "updated"} successfully.`);
+      const completed = completing ? await electronApi.orders.updateStatus(saved.id, "COMPLETED") : saved;
+      await load(); setFormOpen(false);
+      setNotice(completing && completed.saleId ? `Order completed successfully. Sale #${completed.saleId} created.` : `Order #${saved.id} ${editingId === null ? "created" : "updated"} successfully.`);
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to save order."); }
     finally { setSaving(false); }
   };
-  const changeStatus = async (order: Order, status: OrderStatus) => { try { const electronApi = getElectronApi(); if (!electronApi?.orders?.updateStatus) { throw new Error("Unable to update status.\nPlease restart the POS application."); } const updated = await electronApi.orders.updateStatus(order.id, status); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update status."); } };
+  const changeStatus = async (order: Order, status: OrderStatus) => {
+    if (status === "COMPLETED" && !window.confirm(`Complete Order #${order.id}?\n\nThis will create a sale, reduce stock, and add this transaction to sales reports.`)) return;
+    try {
+      const electronApi = getElectronApi();
+      if (!electronApi?.orders?.updateStatus) throw new Error("Unable to update status.\nPlease restart the POS application.");
+      const updated = await electronApi.orders.updateStatus(order.id, status);
+      setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row));
+      setDetail(updated);
+      if (status === "COMPLETED" && updated.saleId) setNotice(`Order completed successfully. Sale #${updated.saleId} created.`);
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to update status."); }
+  };
   const changePayment = async (order: Order) => { const next = order.paymentStatus === "PAID" ? "UNPAID" : "PAID"; try { const electronApi = getElectronApi(); if (!electronApi?.orders?.updatePaymentStatus) { throw new Error("Unable to update payment.\nPlease restart the POS application."); } const updated = await electronApi.orders.updatePaymentStatus(order.id, next); setOrders((rows) => rows.map((row) => row.id === updated.id ? updated : row)); setDetail(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update payment."); } };
   const cancelOrder = async (order: Order) => { if (!window.confirm(`Cancel Order #${order.id}?\n\nThe order will remain in your business history.`)) return; await changeStatus(order, "CANCELLED"); };
   const deleteOrder = async (order: Order) => { if (!window.confirm(`Delete Order #${order.id}?\n\nThis action cannot be undone.`)) return; try { const electronApi = getElectronApi(); if (!electronApi?.orders?.delete) { throw new Error("Unable to delete order.\nPlease restart the POS application."); } await electronApi.orders.delete(Number(order.id)); setDetail(null); await load(); setNotice(`Order #${order.id} deleted.`); } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete order."); } };
