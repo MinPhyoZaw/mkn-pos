@@ -376,7 +376,7 @@ export default function DashboardPage() {
             >
               <ShoppingCart size={18} />
 
-              <span>+ရောင်းမည်</span>
+              <span>ရောင်းမည်</span>
             </a>
           </div>
         </div>
