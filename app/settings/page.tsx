@@ -343,14 +343,12 @@ export default function SettingsPage() {
                   Open Backup Folder
                 </button>
               </div>
-
-              <div className="settings-branding">
-                <span>Made by</span>
-                <strong>
-                  Rangoon Digital Solution
-                </strong>
-              </div>
             </section>
+
+            <div className="settings-branding">
+              <span>Made by</span>
+              <strong>Rangoon Digital Solution</strong>
+            </div>
           </>
         )}
       </div>
