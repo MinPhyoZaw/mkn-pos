@@ -489,7 +489,7 @@ export default function Page() {
           <div style={modalBackdropStyle} onMouseDown={() => !deleteBusy && setDeleteTarget(null)}>
             <div className="product-delete-dialog" onMouseDown={(event) => event.stopPropagation()}>
               <h2>{deleteBlocked ? "Cannot Delete Product" : "Delete Product?"}</h2>
-              {deleteBlocked ? <p>This product has previous records, so it cannot be deleted.<br />You can make it inactive instead. Previous records will remain unchanged.</p> : <p>Are you sure you want to permanently delete <strong>&quot;{deleteTarget.name}&quot;</strong>?<br />This action cannot be undone.</p>}
+              {deleteBlocked ? <p>ယခုကုန်ပစ္စည်းသည် အရောင်းစရင်း ၊ ရောင်းအားမှတ်တမ်းများတွင် ပက်သက်နေပါသဖြင့် ပယ်ဖျက်၍မရသေးပါ ။<br /> Inactive လုပ်ထား၍ပဲရပါသည်။.</p> : <p>Are you sure you want to permanently delete <strong>&quot;{deleteTarget.name}&quot;</strong>?<br />This action cannot be undone.</p>}
               <div className="product-delete-actions">
                 <button disabled={deleteBusy} onClick={() => setDeleteTarget(null)}>Cancel</button>
                 {deleteBlocked ? <button className="inactive-action" disabled={deleteBusy || statusBusy.has(deleteTarget.id) || !deleteTarget.isActive} onClick={() => setProductActive(deleteTarget, false, true)}>{deleteTarget.isActive ? "Make Inactive" : "Already Inactive"}</button> : <button className="delete-action" disabled={deleteBusy} onClick={confirmDelete}>{deleteBusy ? "Deleting..." : "Delete"}</button>}
