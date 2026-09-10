@@ -26,7 +26,7 @@ export default function Page() {
     }
 
     const rows = await electronApi.products.search({ query: search, limit: 30 });
-    setProducts(rows.map((product) => ({ ...product, costPrice: 0, createdAt: "", updatedAt: "" } as Product)));
+    setProducts(rows.map((product: Product) => ({ ...product, costPrice: 0, createdAt: "", updatedAt: "" } as Product)));
   };
 
   useEffect(() => {

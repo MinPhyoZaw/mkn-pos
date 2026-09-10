@@ -24,6 +24,7 @@ model Product {
   sellingPrice  Int
   stockQty      Int @default(0)
   lowStockLevel Int @default(5)
+  isActive      Boolean @default(true)
 
   saleItems  SaleItem[]
   orderItems OrderItem[]

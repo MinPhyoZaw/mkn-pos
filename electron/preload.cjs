@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("electron", {
     create: (data) => ipcRenderer.invoke("products:create", data),
     update: (id, data) => ipcRenderer.invoke("products:update", id, data),
     delete: (id) => ipcRenderer.invoke("products:delete", id),
+    canDelete: (id) => ipcRenderer.invoke("products:canDelete", id),
+    setActive: (id, isActive) => ipcRenderer.invoke("products:setActive", { id, isActive }),
   },
 
   categories: {

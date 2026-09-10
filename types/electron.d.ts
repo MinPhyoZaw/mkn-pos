@@ -35,6 +35,7 @@ export type Product = {
   sellingPrice: number;
   stockQty: number;
   lowStockLevel: number;
+  isActive: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 };
@@ -46,6 +47,7 @@ export type ProductFormData = {
   sellingPrice: number;
   stockQty: number;
   lowStockLevel: number;
+  isActive?: boolean;
 };
 
 export type PaymentStatus = "UNPAID" | "PAID";
@@ -80,11 +82,13 @@ export type OrderInput = Omit<Order, "id" | "totalAmount" | "createdAt" | "updat
 
 type ProductApi = {
   getAll: () => Promise<Product[]>;
-  list: (filters: { page: number; pageSize: number; search?: string; categoryId?: number | string; stockStatus?: string }) => Promise<{ products: Product[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>;
+  list: (filters: { page: number; pageSize: number; search?: string; categoryId?: number | string; stockStatus?: string; status?: "all" | "active" | "inactive" }) => Promise<{ products: Product[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>;
   search: (filters: { query: string; limit?: number }) => Promise<Array<{ id: number; name: string; sellingPrice: number; stockQty: number; lowStockLevel: number; categoryId: number | null; category?: { name: string } | null }>>;
   create: (data: ProductFormData) => Promise<Product>;
   update: (id: number, data: ProductFormData) => Promise<Product>;
-  delete: (id: number) => Promise<Product>;
+  delete: (id: number) => Promise<{ success: boolean; code?: "PRODUCT_HAS_HISTORY" | "DELETE_FAILED"; canDeactivate?: boolean; message?: string }>;
+  canDelete: (id: number) => Promise<{ canDelete: boolean; code?: "PRODUCT_HAS_HISTORY" | "DELETE_FAILED"; canDeactivate?: boolean }>;
+  setActive: (id: number, isActive: boolean) => Promise<Product>;
 };
 
 type CategoryApi = {

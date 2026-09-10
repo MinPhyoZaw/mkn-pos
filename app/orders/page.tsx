@@ -40,7 +40,7 @@ export default function OrdersPage() {
 
       const [orderRows, productRows] = await Promise.all([electronApi.orders.getAll(), electronApi.products.getAll()]);
       setOrders(orderRows);
-      setProducts(productRows);
+      setProducts(productRows.filter((product: Product) => product.isActive));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to load orders.";
       setError(message);

@@ -12,11 +12,12 @@ function normalizeProductData(data = {}) {
     sellingPrice: Number(data.sellingPrice ?? 0),
     stockQty: Number(data.stockQty ?? 0),
     lowStockLevel: Number(data.lowStockLevel ?? 0),
+    ...(typeof data.isActive === "boolean" ? { isActive: data.isActive } : {}),
   };
 }
 
 function productSelect() {
-  return { id: true, name: true, categoryId: true, costPrice: true, sellingPrice: true, stockQty: true, lowStockLevel: true, category: { select: { id: true, name: true } } };
+  return { id: true, name: true, categoryId: true, costPrice: true, sellingPrice: true, stockQty: true, lowStockLevel: true, isActive: true, category: { select: { id: true, name: true } } };
 }
 
 function productWhere(filters = {}) {
@@ -26,6 +27,7 @@ function productWhere(filters = {}) {
   const where = {
     ...(search ? { name: { contains: search } } : {}),
     ...(Number.isInteger(categoryId) ? { categoryId } : {}),
+    ...(filters.status === "active" ? { isActive: true } : filters.status === "inactive" ? { isActive: false } : {}),
   };
   if (stockStatus === "outOfStock") where.stockQty = { lte: 0 };
   if (stockStatus === "inStock") where.stockQty = { gt: 0 };
@@ -35,12 +37,18 @@ function productWhere(filters = {}) {
 function normalizedProductWhere(filters = {}) {
   const where = productWhere(filters);
   if (String(filters.stockStatus ?? "all") === "lowStock") {
-    delete where.AND;
-    const search = String(filters.search ?? "").trim();
-    const categoryId = filters.categoryId == null || filters.categoryId === "all" ? undefined : Number(filters.categoryId);
-    return { search, categoryId };
+    return where;
   }
   return where;
+}
+
+async function productHasHistory(prisma, productId) {
+  const [sales, orders, movements] = await Promise.all([
+    prisma.saleItem.count({ where: { productId } }),
+    prisma.orderItem.count({ where: { productId } }),
+    prisma.stockMovement.count({ where: { productId } }),
+  ]);
+  return Boolean(sales || orders || movements);
 }
 
 ipcMain.handle("products:getAll", async () => {
@@ -66,7 +74,7 @@ ipcMain.handle("products:list", async (_event, filters = {}) => {
   if (stockStatus === "lowStock") {
     const candidates = await prisma.product.findMany({ where: base, select: { id: true, stockQty: true, lowStockLevel: true } });
     const ids = candidates.filter((product) => product.stockQty > 0 && product.stockQty <= product.lowStockLevel).map((product) => product.id);
-    where = { id: { in: ids } };
+    where = { ...base, id: { in: ids } };
   }
   const [products, total] = await Promise.all([
     prisma.product.findMany({ where, select: productSelect(), orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
@@ -79,8 +87,8 @@ ipcMain.handle("products:search", async (_event, filters = {}) => {
   const query = String(filters.query ?? "").trim();
   const limit = Math.min(100, Math.max(1, Number(filters.limit) || 30));
   return getPrisma().product.findMany({
-    where: { stockQty: { gt: 0 }, ...(query ? { name: { contains: query } } : {}) },
-    select: { id: true, name: true, sellingPrice: true, stockQty: true, lowStockLevel: true, categoryId: true, category: { select: { name: true } } },
+    where: { isActive: true, stockQty: { gt: 0 }, ...(query ? { name: { contains: query } } : {}) },
+    select: { id: true, name: true, sellingPrice: true, stockQty: true, lowStockLevel: true, isActive: true, categoryId: true, category: { select: { name: true } } },
     orderBy: { name: "asc" }, take: limit,
   });
 });
@@ -120,7 +128,7 @@ ipcMain.handle("products:update", async (_event, id, data) => {
 
   return prisma.product.update({
     where: { id: Number(id) },
-    data: { name: payload.name, categoryId: payload.categoryId, costPrice: payload.costPrice, sellingPrice: payload.sellingPrice, lowStockLevel: payload.lowStockLevel },
+    data: { name: payload.name, categoryId: payload.categoryId, costPrice: payload.costPrice, sellingPrice: payload.sellingPrice, lowStockLevel: payload.lowStockLevel, ...(typeof payload.isActive === "boolean" ? { isActive: payload.isActive } : {}) },
     include: { category: true },
   });
 });
@@ -128,24 +136,37 @@ ipcMain.handle("products:update", async (_event, id, data) => {
 ipcMain.handle("products:delete", async (_event, id) => {
   const prisma = getPrisma();
   const productId = Number(id);
-  if (!Number.isInteger(productId) || productId <= 0) throw new Error("A valid product ID is required.");
+  if (!Number.isInteger(productId) || productId <= 0) return { success: false, code: "DELETE_FAILED", message: "Unable to delete the product. Please try again." };
 
-  const [sales, orders, movements] = await Promise.all([
-    prisma.saleItem.count({ where: { productId } }),
-    prisma.orderItem.count({ where: { productId } }),
-    prisma.stockMovement.count({ where: { productId } }),
-  ]);
-  if (sales || orders || movements) {
-    throw new Error("This product has existing sales, order, or stock history and cannot be permanently deleted.");
+  if (await productHasHistory(prisma, productId)) {
+    return { success: false, code: "PRODUCT_HAS_HISTORY", canDeactivate: true, message: "This product has previous records, so it cannot be deleted." };
   }
 
   try {
-    return await prisma.product.delete({ where: { id: productId } });
+    await prisma.product.delete({ where: { id: productId } });
+    return { success: true };
   } catch (error) {
-    if (error?.code === "P2003") {
-      throw new Error("This product has existing sales, order, or stock history and cannot be permanently deleted.");
-    }
-    if (error?.code === "P2025") throw new Error("Product not found.");
-    throw error;
+    console.error("Unable to delete product", { productId, error });
+    if (error?.code === "P2003") return { success: false, code: "PRODUCT_HAS_HISTORY", canDeactivate: true, message: "This product has previous records, so it cannot be deleted." };
+    return { success: false, code: "DELETE_FAILED", message: "Unable to delete the product. Please try again." };
+  }
+});
+
+ipcMain.handle("products:canDelete", async (_event, id) => {
+  const productId = Number(id);
+  if (!Number.isInteger(productId) || productId <= 0) return { canDelete: false, code: "DELETE_FAILED" };
+  return (await productHasHistory(getPrisma(), productId))
+    ? { canDelete: false, code: "PRODUCT_HAS_HISTORY", canDeactivate: true }
+    : { canDelete: true };
+});
+
+ipcMain.handle("products:setActive", async (_event, data = {}) => {
+  const id = Number(data.id);
+  if (!Number.isInteger(id) || id <= 0 || typeof data.isActive !== "boolean") throw new Error("Unable to update product status.");
+  try {
+    return await getPrisma().product.update({ where: { id }, data: { isActive: data.isActive }, include: { category: true } });
+  } catch (error) {
+    console.error("Unable to update product status", { id, isActive: data.isActive, error });
+    throw new Error("Unable to update product status. Please try again.");
   }
 });
