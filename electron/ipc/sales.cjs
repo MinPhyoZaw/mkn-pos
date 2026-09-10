@@ -66,6 +66,9 @@ ipcMain.handle("sales:create", async (_event, payload = {}) => {
       if (!product) {
         throw new Error("One or more products are no longer available.");
       }
+      if (!product.isActive) {
+        throw new Error(`${product.name} is inactive and cannot be added to a new sale.`);
+      }
       if (quantity > product.stockQty) {
         throw new Error(`${product.name} only has ${product.stockQty} item(s) left in stock.`);
       }

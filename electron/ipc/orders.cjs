@@ -42,11 +42,13 @@ function normalizeOrder(data = {}) {
   return { customerName, phone, address, notes, paymentStatus, status, orderDate, items };
 }
 
-async function ensureProductsExist(tx, items) {
+async function ensureProductsAvailable(tx, items, allowedInactiveIds = new Set()) {
   const ids = [...new Set(items.map((item) => item.productId).filter((id) => id !== null))];
   if (!ids.length) return;
-  const count = await tx.product.count({ where: { id: { in: ids } } });
-  if (count !== ids.length) throw new Error("One or more selected products no longer exist. Refresh the product list and try again.");
+  const products = await tx.product.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, isActive: true } });
+  if (products.length !== ids.length) throw new Error("One or more selected products no longer exist. Refresh the product list and try again.");
+  const inactive = products.find((product) => !product.isActive && !allowedInactiveIds.has(product.id));
+  if (inactive) throw new Error(`${inactive.name} is inactive and cannot be added to a new order.`);
 }
 
 const includeItems = { items: { orderBy: { id: "asc" } } };
@@ -65,7 +67,7 @@ ipcMain.handle("orders:getById", async (_event, id) => {
 ipcMain.handle("orders:create", async (_event, data) => {
   const payload = normalizeOrder(data);
   return getPrisma().$transaction(async (tx) => {
-    await ensureProductsExist(tx, payload.items);
+    await ensureProductsAvailable(tx, payload.items);
     return tx.order.create({
       data: {
         customerName: payload.customerName, phone: payload.phone, address: payload.address,
@@ -83,7 +85,8 @@ ipcMain.handle("orders:update", async (_event, id, data) => {
   const orderId = numericId(id, "Order ID");
   const payload = normalizeOrder(data);
   return getPrisma().$transaction(async (tx) => {
-    await ensureProductsExist(tx, payload.items);
+    const existingItems = await tx.orderItem.findMany({ where: { orderId }, select: { productId: true } });
+    await ensureProductsAvailable(tx, payload.items, new Set(existingItems.map((item) => item.productId).filter(Boolean)));
     await tx.orderItem.deleteMany({ where: { orderId } });
     return tx.order.update({
       where: { id: orderId },
@@ -126,6 +129,7 @@ ipcMain.handle("orders:updateStatus", async (_event, id, status) => {
     for (const [productId, quantity] of quantities) {
       const product = await tx.product.findUnique({ where: { id: productId } });
       if (!product) throw new Error(`Cannot complete order. Product #${productId} is no longer available.`);
+      if (!product.isActive) throw new Error(`Cannot complete order. ${product.name} is inactive.`);
       if (product.stockQty < quantity) {
         throw new Error(`Cannot complete order. ${product.name} only has ${product.stockQty} item(s) in stock, but this order requires ${quantity}.`);
       }
@@ -178,4 +182,3 @@ ipcMain.handle("orders:updatePaymentStatus", (_event, id, status) => {
 });
 
 ipcMain.handle("orders:delete", (_event, id) => getPrisma().order.delete({ where: { id: numericId(id, "Order ID") } }));
-

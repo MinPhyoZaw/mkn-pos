@@ -11,6 +11,7 @@ const emptyForm: ProductFormData = {
   sellingPrice: 0,
   stockQty: 0,
   lowStockLevel: 5,
+  isActive: true,
 };
 
 const money = (value: number) =>
@@ -27,6 +28,7 @@ export default function Page() {
   const [searchInput, setSearchInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStockStatus, setSelectedStockStatus] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState<"all" | "active" | "inactive">("active");
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
@@ -38,6 +40,10 @@ export default function Page() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [pagination, setPagination] = useState({ page: 1, pageSize: 50, total: 0, totalPages: 1 });
+  const [statusBusy, setStatusBusy] = useState<Set<number>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const fetchProducts = async () => {
     const electronApi = typeof window !== "undefined" ? (window as any).electron : undefined;
@@ -45,7 +51,7 @@ export default function Page() {
       setProducts([]);
       return;
     }
-    const result = await electronApi.products.list({ page, pageSize, search, categoryId: selectedCategory, stockStatus: selectedStockStatus });
+    const result = await electronApi.products.list({ page, pageSize, search, categoryId: selectedCategory, stockStatus: selectedStockStatus, status: selectedStatus });
     setProducts(result.products);
     setPagination(result.pagination);
   };
@@ -82,7 +88,7 @@ export default function Page() {
     const timer = window.setTimeout(() => { setPage(1); setSearch(searchInput); }, 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
-  useEffect(() => { refreshData(); }, [page, pageSize, search, selectedCategory, selectedStockStatus]);
+  useEffect(() => { refreshData(); }, [page, pageSize, search, selectedCategory, selectedStockStatus, selectedStatus]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -100,6 +106,7 @@ export default function Page() {
       sellingPrice: product.sellingPrice,
       stockQty: product.stockQty,
       lowStockLevel: product.lowStockLevel,
+      isActive: product.isActive,
     });
     setFormError("");
     setFormOpen(true);
@@ -113,7 +120,7 @@ export default function Page() {
     setCategoryInput("");
   };
 
-  const handleFieldChange = (field: keyof ProductFormData, value: string | number | null) => {
+  const handleFieldChange = (field: keyof ProductFormData, value: string | number | boolean | null) => {
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -199,23 +206,61 @@ export default function Page() {
   };
 
   const handleDelete = async (product: Product) => {
-    if (typeof window === "undefined") return;
-    const confirmDelete = window.confirm("ယခုကုန်ပစ္စည်းကို ဖျက်ရန်သေချာပြီလား ?");
-    if (!confirmDelete) return;
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    try {
+      const result = await (window as any).electron.products.canDelete(product.id);
+      setDeleteTarget(product);
+      setDeleteBlocked(!result.canDelete && result.code === "PRODUCT_HAS_HISTORY");
+      if (!result.canDelete && result.code !== "PRODUCT_HAS_HISTORY") setNotice("Unable to check this product. Please try again.");
+    } catch {
+      setNotice("Unable to check this product. Please try again.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteBusy) return;
     const electronApi = (window as any).electron;
     if (!electronApi?.products?.delete) {
-      window.alert("Electron product API is unavailable.");
+      setNotice("Unable to delete the product. Please restart the POS application.");
       return;
     }
-
+    setDeleteBusy(true);
     try {
-      await electronApi.products.delete(product.id);
+      const result = await electronApi.products.delete(deleteTarget.id);
+      if (!result.success && result.code === "PRODUCT_HAS_HISTORY") {
+        setDeleteBlocked(true);
+        return;
+      }
+      if (!result.success) throw new Error(result.message);
       await refreshData();
-      setNotice(`Product "${product.name}" deleted.`);
+      setNotice(`Product "${deleteTarget.name}" deleted.`);
+      setDeleteTarget(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "ဤကုန်ပစ္စည်းကို ယခင်အရောင်းမှတ်တမ်းများတွင် အသုံးပြုထားပြီးဖြစ်သောကြောင့် ဖျက်၍မရပါ။ မရောင်းတော့ပါက Inactive လုပ်ထားနိုင်ပါသည်။";
-      window.alert(message);
+      setNotice(error instanceof Error ? error.message : "Unable to delete the product. Please try again.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const setProductActive = async (product: Product, isActive: boolean, skipStockWarning = false) => {
+    if (statusBusy.has(product.id)) return;
+    if (!isActive && !skipStockWarning && product.stockQty > 0 && !window.confirm(`Make Product Inactive?\n\nThis product still has ${product.stockQty} items in stock.\nIt will no longer appear in New Sale.`)) return;
+    const electronApi = (window as any).electron;
+    setStatusBusy((current) => new Set(current).add(product.id));
+    setProducts((current) => current.map((row) => row.id === product.id ? { ...row, isActive } : row));
+    try {
+      await electronApi.products.setActive(product.id, isActive);
+      setNotice(isActive ? "Product marked as active." : "Product marked as inactive.");
+      setDeleteTarget(null);
+      await fetchProducts();
+    } catch {
+      setProducts((current) => current.map((row) => row.id === product.id ? { ...row, isActive: product.isActive } : row));
+      setNotice("Unable to update product status. Please try again.");
+    } finally {
+      setStatusBusy((current) => { const next = new Set(current); next.delete(product.id); return next; });
     }
   };
 
@@ -257,6 +302,11 @@ export default function Page() {
             <option value="low">Low Stock</option>
             <option value="out">Out of Stock</option>
           </select>
+          <select style={inputStyle} value={selectedStatus} onChange={(event) => { setPage(1); setSelectedStatus(event.target.value as "all" | "active" | "inactive"); }}>
+            <option value="all">All Products</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         <div className="product-pagination"><span>{pagination.total ? `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, pagination.total)} of ${pagination.total}` : "0 products"}</span><label>Rows <select value={pageSize} onChange={(event) => { setPage(1); setPageSize(Number(event.target.value)); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><button disabled={page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Next</button></div>
@@ -270,14 +320,15 @@ export default function Page() {
                 <th style={thStyle}>၀ယ်ဈေး</th>
                 <th style={thStyle}>ရောင်းဈေး</th>
                 <th style={thStyle}>လက်ကျန်</th>
-                <th style={thStyle}>အခြေနေ</th>
+                <th style={thStyle}>Stock Status</th>
+                <th style={thStyle}>Product Status</th>
                 <th style={thStyle}>လုပ်ဆောင်ချက်</th>
               </tr>
             </thead>
             <tbody>
               {!loading && products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: 24, color: "#667085" }}>
+                  <td colSpan={8} style={{ textAlign: "center", padding: 24, color: "#667085" }}>
                     ကုန်ပစ္စည်းရှာမတွေ့ပါ (မရှိသေးပါ)
                   </td>
                 </tr>
@@ -297,9 +348,15 @@ export default function Page() {
                       <span className={`product-status-badge ${status.toLowerCase().replaceAll(" ", "-")}`}>{status}</span>
                     </td>
                     <td style={tdStyle}>
+                      <div className="product-active-control">
+                        <span className={`product-active-badge ${product.isActive ? "active" : "inactive"}`}>{product.isActive ? "Active" : "Inactive"}</span>
+                        <button className={`product-toggle ${product.isActive ? "on" : "off"}`} role="switch" aria-checked={product.isActive} aria-label={`${product.isActive ? "Make" : "Mark"} ${product.name} ${product.isActive ? "inactive" : "active"}`} disabled={statusBusy.has(product.id)} onClick={() => setProductActive(product, !product.isActive)}><span /></button>
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
                       <div style={{ display: "flex", gap: 8 }}>
                         <button className="product-action-edit" style={rowEditButtonStyle} onClick={() => openEditModal(product)}>Edit</button>
-                        <button className="product-action-delete" style={rowDeleteButtonStyle} onClick={() => handleDelete(product)}>Delete</button>
+                        <button className="product-action-delete" style={rowDeleteButtonStyle} disabled={deleteBusy} onClick={() => handleDelete(product)}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -398,6 +455,13 @@ export default function Page() {
                 </div>
               </div>
 
+              {editingId !== null ? (
+                <div className="product-status-editor">
+                  <div><strong>Product Status</strong><span>{form.isActive ? "Active products appear in new sales and orders." : "Inactive products remain in historical records."}</span></div>
+                  <label className="product-status-toggle-label"><span>{form.isActive ? "Active" : "Inactive"}</span><button type="button" className={`product-toggle ${form.isActive ? "on" : "off"}`} role="switch" aria-checked={Boolean(form.isActive)} onClick={() => handleFieldChange("isActive", !form.isActive)}><span /></button></label>
+                </div>
+              ) : null}
+
               {categories.length === 0 ? (
                 <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
                   <input
@@ -417,6 +481,18 @@ export default function Page() {
                 <button style={primaryButtonStyle} onClick={submitForm} disabled={saveLoading}>
                   {saveLoading ? "Saving..." : editingId === null ? "Create Product" : "Save Changes"}
                 </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {deleteTarget ? (
+          <div style={modalBackdropStyle} onMouseDown={() => !deleteBusy && setDeleteTarget(null)}>
+            <div className="product-delete-dialog" onMouseDown={(event) => event.stopPropagation()}>
+              <h2>{deleteBlocked ? "Cannot Delete Product" : "Delete Product?"}</h2>
+              {deleteBlocked ? <p>This product has previous records, so it cannot be deleted.<br />You can make it inactive instead. Previous records will remain unchanged.</p> : <p>Are you sure you want to permanently delete <strong>&quot;{deleteTarget.name}&quot;</strong>?<br />This action cannot be undone.</p>}
+              <div className="product-delete-actions">
+                <button disabled={deleteBusy} onClick={() => setDeleteTarget(null)}>Cancel</button>
+                {deleteBlocked ? <button className="inactive-action" disabled={deleteBusy || statusBusy.has(deleteTarget.id) || !deleteTarget.isActive} onClick={() => setProductActive(deleteTarget, false, true)}>{deleteTarget.isActive ? "Make Inactive" : "Already Inactive"}</button> : <button className="delete-action" disabled={deleteBusy} onClick={confirmDelete}>{deleteBusy ? "Deleting..." : "Delete"}</button>}
               </div>
             </div>
           </div>
@@ -615,4 +691,3 @@ const errorStyle: React.CSSProperties = {
   borderRadius: 10,
   marginBottom: 16,
 };
-
