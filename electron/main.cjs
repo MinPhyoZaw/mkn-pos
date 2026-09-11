@@ -1,85 +1,125 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const http = require("http");
 
 const isDev = !app.isPackaged;
 
 let mainWindow = null;
-let splashWindow = null;
+let localServer = null;
 
-const logFile = path.join(app.getPath("userData"), "startup.log");
+function getContentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
 
-function log(message) {
-  const line = `[${new Date().toISOString()}] ${message}\n`;
+  const types = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+  };
 
-  try {
-    fs.appendFileSync(logFile, line);
-  } catch {}
-
-  console.log(message);
+  return types[ext] || "application/octet-stream";
 }
 
-process.on("uncaughtException", (error) => {
-  log(`UNCAUGHT EXCEPTION: ${error.stack || error.message}`);
-});
+function startLocalServer() {
+  return new Promise((resolve, reject) => {
+    const outDir = path.join(__dirname, "../out");
 
-process.on("unhandledRejection", (reason) => {
-  log(`UNHANDLED REJECTION: ${String(reason)}`);
-});
+    localServer = http.createServer((req, res) => {
+      try {
+        let urlPath = decodeURIComponent(
+          (req.url || "/").split("?")[0]
+        );
 
-function createSplashWindow() {
-  splashWindow = new BrowserWindow({
-    width: 960,
-    height: 540,
-    frame: false,
-    resizable: false,
-    maximizable: false,
-    minimizable: false,
-    fullscreenable: false,
-    center: true,
-    alwaysOnTop: true,
-    show: true,
-    autoHideMenuBar: true,
-    backgroundColor: "#0F766E",
+        if (urlPath === "/") {
+          urlPath = "/dashboard/";
+        }
 
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
+        let filePath = path.join(outDir, urlPath);
+
+        // Protect against paths outside out/
+        const normalizedOut = path.resolve(outDir);
+        const normalizedFile = path.resolve(filePath);
+
+        if (!normalizedFile.startsWith(normalizedOut)) {
+          res.writeHead(403);
+          res.end("Forbidden");
+          return;
+        }
+
+        // /products/ -> /products/index.html
+        if (
+          urlPath.endsWith("/") ||
+          (fs.existsSync(filePath) &&
+            fs.statSync(filePath).isDirectory())
+        ) {
+          filePath = path.join(filePath, "index.html");
+        }
+
+        // /products -> /products/index.html
+        if (!fs.existsSync(filePath)) {
+          const routeIndex = path.join(
+            outDir,
+            urlPath,
+            "index.html"
+          );
+
+          if (fs.existsSync(routeIndex)) {
+            filePath = routeIndex;
+          }
+        }
+
+        if (!fs.existsSync(filePath)) {
+          res.writeHead(404, {
+            "Content-Type": "text/plain; charset=utf-8",
+          });
+
+          res.end("Not Found");
+          return;
+        }
+
+        res.writeHead(200, {
+          "Content-Type": getContentType(filePath),
+        });
+
+        fs.createReadStream(filePath).pipe(res);
+      } catch (error) {
+        console.error("Static server error:", error);
+
+        res.writeHead(500);
+        res.end("Internal Server Error");
+      }
+    });
+
+    // Port 0 lets Windows choose a free local port
+    localServer.listen(0, "127.0.0.1", () => {
+      const address = localServer.address();
+
+      if (
+        !address ||
+        typeof address === "string"
+      ) {
+        reject(
+          new Error("Unable to determine local server port.")
+        );
+        return;
+      }
+
+      resolve(address.port);
+    });
+
+    localServer.on("error", reject);
   });
-
-  splashWindow.loadFile(
-    path.join(__dirname, "splash.html")
-  ).catch((error) => {
-    log(`Splash load failed: ${error.stack || error.message}`);
-  });
-
-  log("Splash window created");
 }
 
-function closeSplash() {
-  if (splashWindow && !splashWindow.isDestroyed()) {
-    splashWindow.close();
-    splashWindow = null;
-    log("Splash window closed");
-  }
-}
-
-function showMainWindow() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-
-  closeSplash();
-
-  mainWindow.maximize();
-  mainWindow.show();
-  mainWindow.focus();
-
-  log("Main window shown");
-}
-
-function createWindow() {
-  log("createWindow started");
-
+function createWindow(url) {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -88,164 +128,98 @@ function createWindow() {
 
     show: false,
     autoHideMenuBar: true,
+
     backgroundColor: "#f7f9fc",
 
-    icon: path.join(__dirname, "../build/icon.ico"),
+    icon: path.join(
+      __dirname,
+      "../build/icon.ico"
+    ),
 
     webPreferences: {
-      preload: path.join(__dirname, "preload.cjs"),
+      preload: path.join(
+        __dirname,
+        "preload.cjs"
+      ),
+
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  log("BrowserWindow created");
-
-  mainWindow.webContents.on(
-    "did-fail-load",
-    (
-      event,
-      errorCode,
-      errorDescription,
-      validatedURL
-    ) => {
-      log(
-        `did-fail-load: ${errorCode} ${errorDescription} ${validatedURL}`
-      );
-
-      showMainWindow();
-    }
-  );
-
-  mainWindow.webContents.on(
-    "render-process-gone",
-    (event, details) => {
-      log(
-        `render-process-gone: ${JSON.stringify(details)}`
-      );
-    }
-  );
-
-  mainWindow.webContents.on(
-    "console-message",
-    (event, level, message) => {
-      log(`Renderer console: ${message}`);
-    }
-  );
-
-  if (isDev) {
-    log("Loading development URL");
-
-    mainWindow
-      .loadURL("http://localhost:3000")
-      .catch((error) => {
-        log(
-          `Development load failed: ${
-            error.stack || error.message
-          }`
-        );
-      });
-  } else {
-    const productionPage = path.join(
-      __dirname,
-      "../out/dashboard/index.html"
-    );
-
-    log(`Loading production page: ${productionPage}`);
-
-    mainWindow
-      .loadFile(productionPage)
-      .catch((error) => {
-        log(
-          `Production load failed: ${
-            error.stack || error.message
-          }`
-        );
-
-        showMainWindow();
-      });
-  }
+  mainWindow.loadURL(url);
 
   mainWindow.once("ready-to-show", () => {
-    log("ready-to-show fired");
-    showMainWindow();
+    mainWindow.maximize();
+    mainWindow.show();
   });
-
-  // Fallback:
-  // Prevent the app from running invisibly if ready-to-show
-  // does not fire for some reason.
-  setTimeout(() => {
-    if (
-      mainWindow &&
-      !mainWindow.isDestroyed() &&
-      !mainWindow.isVisible()
-    ) {
-      log(
-        "Main window was still hidden after 3 seconds. Showing fallback window."
-      );
-
-      showMainWindow();
-    }
-  }, 3000);
 
   mainWindow.on("closed", () => {
     mainWindow = null;
-    log("Main window closed");
   });
 }
 
-app.whenReady().then(() => {
-  log("App ready");
+app.whenReady().then(async () => {
+  require("./ipc/categories.cjs");
+  require("./ipc/products.cjs");
+  require("./ipc/sales.cjs");
+  require("./ipc/orders.cjs");
+  require("./ipc/stock.cjs");
+  require("./ipc/sales-history.cjs");
+  require("./ipc/reports.cjs");
+  require("./ipc/backup.cjs");
+  require("./ipc/settings.cjs");
+  require("./ipc/dashboard.cjs");
 
-  try {
-    require("./ipc/categories.cjs");
-    log("categories IPC loaded");
+  if (isDev) {
+    createWindow(
+      "http://localhost:3000/dashboard/"
+    );
+  } else {
+    const port = await startLocalServer();
 
-    require("./ipc/products.cjs");
-    log("products IPC loaded");
-
-    require("./ipc/sales.cjs");
-    log("sales IPC loaded");
-
-    require("./ipc/orders.cjs");
-    log("orders IPC loaded");
-
-    require("./ipc/stock.cjs");
-    log("stock IPC loaded");
-
-    require("./ipc/sales-history.cjs");
-    log("sales-history IPC loaded");
-
-    require("./ipc/reports.cjs");
-    log("reports IPC loaded");
-
-    require("./ipc/backup.cjs");
-    log("backup IPC loaded");
-
-    require("./ipc/settings.cjs");
-    log("settings IPC loaded");
-
-    require("./ipc/dashboard.cjs");
-    log("dashboard IPC loaded");
-  } catch (error) {
-    log(
-      `IPC loading failed: ${error.stack || error.message}`
+    createWindow(
+      `http://127.0.0.1:${port}/dashboard/`
     );
   }
 
-  createSplashWindow();
-  createWindow();
+  app.on("activate", async () => {
+    if (
+      BrowserWindow.getAllWindows().length === 0
+    ) {
+      if (isDev) {
+        createWindow(
+          "http://localhost:3000/dashboard/"
+        );
+      } else {
+        let port;
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createSplashWindow();
-      createWindow();
+        if (localServer?.listening) {
+          const address = localServer.address();
+
+          if (
+            address &&
+            typeof address !== "string"
+          ) {
+            port = address.port;
+          }
+        }
+
+        if (!port) {
+          port = await startLocalServer();
+        }
+
+        createWindow(
+          `http://127.0.0.1:${port}/dashboard/`
+        );
+      }
     }
   });
 });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    localServer?.close();
     app.quit();
   }
 });

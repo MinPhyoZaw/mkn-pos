@@ -40,45 +40,55 @@
     "wait-on": "^8.0.0"
   },
 
-  "build": {
-    "appId": "com.rds.dawjarnutoysandstationerypos",
-    "productName": "Daw Jar Nu Toys and Stationery POS",
+ "build": {
+  "appId": "com.rds.dawjarnutoysandstationerypos",
+  "productName": "Daw Jar Nu Toys and Stationery POS",
 
-    "directories": {
-      "output": "dist"
-    },
+  "directories": {
+    "output": "dist"
+  },
 
-    "files": [
-      "electron/**/*",
-      "out/**/*",
-      "public/**/*",
-      "prisma/**/*",
-      "build/icon.ico",
-      "package.json",
-      "node_modules/**/*"
-    ],
+  "files": [
+    "electron/**/*",
+    "out/**/*",
+    "public/**/*",
+    "prisma/**/*",
+    "build/icon.ico",
+    "package.json",
+    "node_modules/**/*"
+  ],
 
-    "asar": true,
+  "asar": false,
 
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
+  "extraResources": [
+    {
+      "from": "node_modules/.prisma",
+      "to": "app/node_modules/.prisma",
+      "filter": [
+        "**/*"
       ]
-    },
-
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Daw Jar Nu POS",
-      "uninstallDisplayName": "Daw Jar Nu POS"
     }
+  ],
+
+  "win": {
+    "icon": "build/icon.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ]
+  },
+
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Daw Jar Nu POS",
+    "uninstallDisplayName": "Daw Jar Nu POS"
   }
+}
 }

@@ -8,8 +8,6 @@ const nextConfig = {
   },
 
   trailingSlash: true,
-
-  assetPrefix: ".",
 };
 
 export default nextConfig;
